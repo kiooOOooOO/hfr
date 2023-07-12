@@ -15,3 +15,6 @@ run:
 
 samplemod: ${SRCDIR}/samplemod.f08
 	${FC} ${FC_FLAGS} -c ${SRCDIR}/samplemod.f08 -o ${OUTDIR}/samplemod.o
+
+pgto: ${SRCDIR}/pgto.f08
+	${FC} ${FC_FLAGS} -c ${SRCDIR}/pgto.f08 -o ${OUTDIR}/pgto.o

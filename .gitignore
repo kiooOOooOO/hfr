@@ -2,3 +2,4 @@ src/*.swp
 out/*.o
 out/hfr
 mod/*.mod
+*.swp
