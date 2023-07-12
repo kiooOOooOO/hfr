@@ -590,4 +590,93 @@ module pgto
             r2 = (ga%cx-gb%cx)**2 + (ga%cy-gb%cy)**2 + (ga%cz-gb%cz)**2
             ret = gzi * (3d0 - 2d0*gzi*r2) * _pgto_overlap0(ga, gb) ! norm multiplied in overlap0
         end function
+
+        recursive function pgto_nuclear_attr(ga, gb, cx, cy, cz, m) result(ret)
+            real(8), intent(out) :: ret
+            type(pgto), intent(in) :: ga, gb
+            real(8), intent(in) :: cx, cy, cz
+            integer, intent(in) :: m
+
+            real(8) :: zeta
+            real(8) :: abm, abmp1, am1bm, am1bmp1, abm1m, abm1mp1
+            real(8) :: px, py, pz
+
+            am1bm = 0d0
+            am1bmp1 = 0d0
+            abm1m = 0d0
+            abm1mp1 = 0d0
+
+            zeta = ga%expo + gb%expo
+            call _pgto_internal_division_point(px, py, pz, ga%expo, ga%cx, ga%cy, ga%cz, gb%expo, gb%cx, gb%cy, gb%cz)
+
+            if ( _pgto_all_n_zero(ga) .and. _pgto_all_n_zero(gb) ) then
+                ret = _pgto_nuclear_attr0(ga, gb, cx, cy, cz, m)
+            else if ( ga%nx .gt. 0 ) then
+                abm = pgto_nuclear_attr(_pgto_clone(ga, -1,0,0), gb, cx, cy, cz, m)
+                abmp1 = pgto_nuclear_attr(_pgto_clone(ga, -1,0,0), gb, cx, cy, cz, m+1)
+
+                if ( ga%nx .gt. 1 ) then
+                    am1bm = pgto_nuclear_attr(_pgto_clone(ga, -2,0,0), gb, cx, cy, cz, m)
+                    am1bmp1 = pgto_nuclear_attr(_pgto_clone(ga, -2,0,0), gb, cx, cy, cz, m+1)
+                end if
+
+                if ( gb%nx .gt. 0 ) then
+                    abm1m = pgto_nuclear_attr(_pgto_clone(ga, -1,0,0), _pgto_clone(gb, -1,0,0), cx, cy, cz, m)
+                    abm1mp1 = pgto_nuclear_attr(_pgto_clone(ga, -1,0,0), _pgto_clone(gb, -1,0,0), cx, cy, cz, m+1)
+                end if
+
+                ret = (px-ga%cx)*abm - (px-cx)*abmp1 + 0.5d0*(ga%nx-1)*(am1bm - am1bmp1)/zeta &
+                    + 0.5d0*gb%nx*(abm1m - abm1mp1)/zeta
+            else if ( ga%ny .gt. 0 ) then
+                abm = pgto_nuclear_attr(_pgto_clone(ga, 0,-1,0), gb, cx, cy, cz, m)
+                abmp1 = pgto_nuclear_attr(_pgto_clone(ga, 0,-1,0), gb, cx, cy, cz, m+1)
+
+                if ( ga%ny .gt. 1 ) then
+                    am1bm = pgto_nuclear_attr(_pgto_clone(ga, 0,-2,0), gb, cx, cy, cz, m)
+                    am1bmp1 = pgto_nuclear_attr(_pgto_clone(ga, 0,-2,0), gb, cx, cy, cz, m+1)
+                end if
+
+                if ( gb%ny .gt. 0 ) then
+                    abm1m = pgto_nuclear_attr(_pgto_clone(ga, 0,-1,0), _pgto_clone(gb, 0,-1,0), cx, cy, cz, m)
+                    abm1mp1 = pgto_nuclear_attr(_pgto_clone(ga, 0,-1,0), _pgto_clone(gb, 0,-1,0), cx, cy, cz, m+1)
+                end if
+
+                ret = (py-ga%cy)*abm - (py-cy)*abmp1 + 0.5d0*(ga%ny-1)*(am1bm - am1bmp1)/zeta &
+                    + 0.5d0*gb%ny*(abm1m - abm1mp1)/zeta
+            else if ( ga%nz .gt. 0 ) then
+                abm = pgto_nuclear_attr(_pgto_clone(ga, 0,0,-1), gb, cx, cy, cz, m)
+                abmp1 = pgto_nuclear_attr(_pgto_clone(ga, 0,0,-1), gb, cx, cy, cz, m+1)
+
+                if ( ga%nz .gt. 1 ) then
+                    am1bm = pgto_nuclear_attr(_pgto_clone(ga, 0,0,-2), gb, cx, cy, cz, m)
+                    am1bmp1 = pgto_nuclear_attr(_pgto_clone(ga, 0,0,-2), gb, cx, cy, cz, m+1)
+                end if
+
+                if ( gb%nz .gt. 0 ) then
+                    abm1m = pgto_nuclear_attr(_pgto_clone(ga, 0,0,-1), _pgto_clone(gb, 0,0,-1), cx, cy, cz, m)
+                    abm1mp1 = pgto_nuclear_attr(_pgto_clone(ga, 0,0,-1), _pgto_clone(gb, -1,0,0), cx, cy, cz, m+1)
+                end if
+
+                ret = (pz-ga%cz)*abm - (pz-cz)*abmp1 + 0.5d0*(ga%nz-1)*(am1bm - am1bmp1)/zeta &
+                    + 0.5d0*gb%nz*(abm1m - abm1mp1)/zeta
+            else
+                ret = pgto_nuclear_attr(gb, ga, cx, cy, cz, m)
+            end if
+        end function
+
+        function _pgto_nuclear_attr0(ga, gb, cx, cy, cz, m) result(ret)
+            real(8), intent(out) :: ret
+            type(pgto), intent(in) :: ga, gb
+            real(8), intent(in) :: cx, cy, cz
+            integer, intent(in) :: m
+
+            real(8) :: zeta, u, px, py, pz
+
+            call _pgto_internal_division_point(px, py, pz, ga%expo, ga%cx, ga%cy, ga%cz, gb%expo, gb%cx, gb%cy, gb%cz)
+
+            zeta = ga%expo + gb%expo
+            u = zeta * ((px-cx)**2 + (py-cy)**2 + (pz-cz)**2)
+            
+            ret = 2d0*(zeta/PI)**0.5d0 * _pgto_overlap0(ga, gb) * _pgto_fm(u, m) ! norm multiplied in overlap0
+        end function
 end module
