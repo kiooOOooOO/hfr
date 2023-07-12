@@ -516,4 +516,78 @@ module pgto
 
             func = v**(2*m) * exp(-t*v**2)
         end function
+
+        recursive function pgto_kinetic_energy(ga, gb) result(ret)
+            real(8), intent(out) :: ret
+            type(pgto), intent(in) :: ga, gb
+
+            real(8) :: ab, am1b, abm1, zeta, gzi, px, py, pz
+            real(8) :: oap1b, oam1b
+
+            if ( _pgto_all_n_zero(ga) .and. _pgto_all_n_zero(gb) ) then
+                ret = _pgto_kinetic_energy0(ga, gb)
+            else
+                zeta = ga%expo + gb%expo
+                gzi = ga%expo*gb%expo/zeta
+                ab = 0
+                am1b = 0
+                abm1 = 0
+                oap1b = 0
+                oam1b = 0
+
+                call _pgto_internal_division_point(px, py, pz, ga%expo, ga%cx, ga%cy, ga%cz, gb%expo, gb%cx, gb%cy, gb%cz)
+
+                oap1b = pgto_overlap(ga, gb)
+
+                if ( ga%nx .gt. 0 ) then
+                    ab = pgto_kinetic_energy(_pgto_clone(ga, -1, 0, 0), gb)
+                    if ( ga%nx .gt. 1 ) then
+                        am1b = pgto_kinetic_energy(_pgto_clone(ga, -2, 0, 0), gb)
+                        oam1b = pgto_overlap(_pgto_clone(ga, -2, 0, 0), gb)
+                    end if
+                    if ( gb%nx .gt. 0 ) then
+                        abm1 = pgto_kinetic_energy(_pgto_clone(ga, -1, 0, 0), _pgto_clone(gb, -1, 0, 0))
+                    end if
+                    ret = (px-ga%cx)*ab + 0.5d0*(ga%nx-1)*am1b/zeta + 0.5d0*gb%nx*abm1/zeta + &
+                        2*gzi * (oap1b - 0.5d0*(ga%nx-1)*oam1b/ga%expo)
+                else if ( ga%ny .gt. 0 ) then
+                    ab = pgto_kinetic_energy(_pgto_clone(ga, 0, -1, 0), gb)
+                    if ( ga%ny .gt. 1 ) then
+                        am1b = pgto_kinetic_energy(_pgto_clone(ga, 0, -2, 0), gb)
+                        oam1b = pgto_overlap(_pgto_clone(ga, 0, -2, 0), gb)
+                    end if
+                    if ( gb%ny .gt. 0 ) then
+                        abm1 = pgto_kinetic_energy(_pgto_clone(ga, 0, -1, 0), _pgto_clone(gb, 0, -1, 0))
+                    end if
+                    ret = (py-ga%cy)*ab + 0.5d0*(ga%ny-1)*am1b/zeta + 0.5d0*gb%ny*abm1/zeta + &
+                        2*gzi * (oap1b - 0.5d0*(ga%ny-1)*oam1b/ga%expo)
+                else if ( ga%nz .gt. 0 ) then
+                    ab = pgto_kinetic_energy(_pgto_clone(ga, 0, 0, -1), gb)
+                    if ( ga%nz .gt. 1 ) then
+                        am1b = pgto_kinetic_energy(_pgto_clone(ga, 0, 0, -2), gb)
+                        oam1b = pgto_overlap(_pgto_clone(ga, 0, 0, -2), gb)
+                    end if
+                    if ( gb%nz .gt. 0 ) then
+                        abm1 = pgto_kinetic_energy(_pgto_clone(ga, 0, 0, -1), _pgto_clone(gb, 0, 0, -1))
+                    end if
+                    ret = (pz-ga%cz)*ab + 0.5d0*(ga%nz-1)*am1b/zeta + 0.5d0*gb%nz*abm1/zeta + &
+                        2*gzi * (oap1b - 0.5d0*(ga%nz-1)*oam1b/ga%expo)
+                else
+                    ret = pgto_kinetic_energy(gb, ga)
+                end if
+            end if
+        end function
+
+        function _pgto_kinetic_energy0(ga, gb) result(ret)
+            real(8), intent(out) :: ret
+            type(pgto), intent(in) :: ga, gb
+
+            real(8) :: zeta, gzi, r2
+
+            zeta = ga%expo + gb%expo
+            gzi = ga%expo*gb%expo/zeta
+
+            r2 = (ga%cx-gb%cx)**2 + (ga%cy-gb%cy)**2 + (ga%cz-gb%cz)**2
+            ret = gzi * (3d0 - 2d0*gzi*r2) * _pgto_overlap0(ga, gb) ! norm multiplied in overlap0
+        end function
 end module
