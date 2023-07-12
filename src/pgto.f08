@@ -153,17 +153,30 @@ module pgto
             type(pgto), intent(in) :: ga, gb, gc, gd
             integer, intent(in) :: m
 
-            real(8) :: am0m = 0, am0mp1 = 0
-            real(8) :: am1m = 0, am1mp1 = 0
-            real(8) :: bm1m = 0, bm1mp1 = 0
-            real(8) :: cm1mp1 = 0
-            real(8) :: dm1mp1 = 0
+            real(8) :: am0m, am0mp1
+            real(8) :: am1m, am1mp1
+            real(8) :: bm1m, bm1mp1
+            real(8) :: cm1mp1
+            real(8) :: dm1mp1
 
-            real(8) :: px = 0, py = 0, pz = 0
-            real(8) :: qx = 0, qy = 0, qz = 0
-            real(8) :: wx = 0, wy = 0, wz = 0
+            real(8) :: px, py, pz
+            real(8) :: qx, qy, qz
+            real(8) :: wx, wy, wz
 
-            real(8) :: zeta = 0, eta = 0, rho = 0
+            real(8) :: zeta, eta, rho
+
+            am0m = 0d0
+            am0mp1 = 0d0
+            am1m = 0d0
+            am1mp1 = 0d0
+            bm1m = 0d0
+            bm1mp1 = 0d0
+            cm1mp1 = 0d0
+            dm1mp1 = 0d0
+
+            zeta = 0d0
+            eta = 0d0
+            rho = 0d0
 
             zeta = ga%expo + gb%expo
             eta  = gc%expo + gd%expo
@@ -456,10 +469,10 @@ module pgto
             type(pgto), intent(in) :: ga, gb, gc, gd
             integer, intent(in) :: m
 
-            real(8) :: zeta = 0, eta = 0, rho = 0
-            real(8) :: qx = 0, qy = 0, qz = 0
-            real(8) :: px = 0, py = 0, pz = 0
-            real(8) :: t = 0
+            real(8) :: zeta, eta, rho
+            real(8) :: qx, qy, qz
+            real(8) :: px, py, pz
+            real(8) :: t
 
             zeta = ga%expo + gb%expo
             eta  = gc%expo + gd%expo
@@ -499,8 +512,8 @@ module pgto
             real(8), parameter :: DV = 1e-5
             real(8) :: sumation = 0, v = 0
 
-            v = 0
-            sumation = 0
+            v = 0d0
+            sumation = 0d0
             do while ( v .le. 1 )
                 sumation = sumation + 0.5d0 * DV * (_pgto_fm_func(t, m, v) + _pgto_fm_func(t, m, v+DV))
                 v = v + DV
@@ -529,11 +542,11 @@ module pgto
             else
                 zeta = ga%expo + gb%expo
                 gzi = ga%expo*gb%expo/zeta
-                ab = 0
-                am1b = 0
-                abm1 = 0
-                oap1b = 0
-                oam1b = 0
+                ab = 0d0
+                am1b = 0d0
+                abm1 = 0d0
+                oap1b = 0d0
+                oam1b = 0d0
 
                 call _pgto_internal_division_point(px, py, pz, ga%expo, ga%cx, ga%cy, ga%cz, gb%expo, gb%cx, gb%cy, gb%cz)
 
