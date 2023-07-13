@@ -88,11 +88,15 @@ module hf
 
                 write (*,*) "asserting hfr result"
                 call hf_assert_hfr_answer(s%num_basis, mat_fd, mat_cd, mat_e)
+                write (*,*) "transposed coefficient matrix"
                 write (*,*) mat_cd
+                write (*,*) "energy matrix"
                 write (*,*) mat_e
 
-                write (*,*) "creating density matrix"
+                write (*,*) "coefficient matrix"
                 call matrix_mult_normal_normal(mat_x, mat_cd, s%num_basis, s%num_basis, s%num_basis, mat_c)
+                write (*,*) mat_c
+                write (*,*) "creating density matrix"
                 call hf_density_matrix(s%num_basis, mat_c, mat_p)
                 write (*,*) mat_p
 
@@ -167,8 +171,8 @@ module hf
                 c = mod(i,n) + 1
 
                 val = 0d0
-                do j=1,n
-                    val = val + mat_c(c,j)*mat_c(r,j)
+                do j=1,n/2
+                    val = val + 2*mat_c(c,j)*mat_c(r,j)
                 end do
 
                 write (*,*) r, c, val
