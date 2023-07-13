@@ -240,18 +240,18 @@ module pgto
              else if ( ga%nz .gt. 0 ) then
                  am0m = _pgto_eri_internal(_pgto_clone(ga, 0, 0, -1), gb, gc, gd, m)
                  am0mp1 = _pgto_eri_internal(_pgto_clone(ga, 0, 0, -1), gb, gc, gd, m+1)
-                 if ( ga%ny .gt. 1 ) then
+                 if ( ga%nz .gt. 1 ) then
                     am1m = _pgto_eri_internal(_pgto_clone(ga, 0, 0, -2), gb, gc, gd, m)
                     am1mp1 = _pgto_eri_internal(_pgto_clone(ga, 0, 0, -2), gb, gc, gd, m+1)
                  end if
-                 if ( gb%ny .gt. 0 ) then
+                 if ( gb%nz .gt. 0 ) then
                     bm1m = _pgto_eri_internal(_pgto_clone(ga, 0, 0, -1), _pgto_clone(gb, 0, 0, -1), gc, gd, m)
                     bm1mp1 = _pgto_eri_internal(_pgto_clone(ga, 0, 0, -1), _pgto_clone(gb, 0, 0, -1), gc, gd, m+1)
                  end if
-                 if ( gc%ny .gt. 0 ) then
+                 if ( gc%nz .gt. 0 ) then
                      cm1mp1 = _pgto_eri_internal(_pgto_clone(ga, 0, 0, -1), gb, _pgto_clone(gc, 0, 0, -1), gd, m+1)
                  end if
-                 if ( gd%ny .gt. 0 ) then
+                 if ( gd%nz .gt. 0 ) then
                      dm1mp1 = _pgto_eri_internal(_pgto_clone(ga, 0, 0, -1), gb, gc, _pgto_clone(gd, 0, 0, -1), m+1)
                  end if
 
@@ -435,7 +435,7 @@ module pgto
                      (0.5d0*ga%ny/zeta)*(am1m - rho*am1mp1/zeta) + &
                      (0.5d0*gb%ny/zeta)*(bm1m - rho*bm1mp1/zeta) + &
                      (gc%ny*cm1mp1 + (gd%ny-1)*dm1mp1)/(2d0*(zeta+eta))
-             else if ( gc%nz .gt. 0 ) then
+             else if ( gd%nz .gt. 0 ) then
                  am0m = _pgto_eri_internal(ga, gb, gc, _pgto_clone(gd, 0, 0, -1), m)
                  am0mp1 = _pgto_eri_internal(ga, gb, gc, _pgto_clone(gd, 0, 0, -1), m+1)
                  if ( ga%nz .gt. 0 ) then
@@ -459,6 +459,10 @@ module pgto
                      (gc%nz*cm1mp1 + (gd%nz-1)*dm1mp1)/(2d0*(zeta+eta))
              else
                  write (*,*) "warning"
+                 write (*,*) ga%nx, ga%ny, ga%nz
+                 write (*,*) gb%nx, gb%ny, gb%nz
+                 write (*,*) gc%nx, gc%ny, gc%nz
+                 write (*,*) gd%nx, gd%ny, gd%nz
                  stop
              end if
 
@@ -668,7 +672,7 @@ module pgto
 
                 if ( gb%nz .gt. 0 ) then
                     abm1m = pgto_nuclear_attr(_pgto_clone(ga, 0,0,-1), _pgto_clone(gb, 0,0,-1), cx, cy, cz, m)
-                    abm1mp1 = pgto_nuclear_attr(_pgto_clone(ga, 0,0,-1), _pgto_clone(gb, -1,0,0), cx, cy, cz, m+1)
+                    abm1mp1 = pgto_nuclear_attr(_pgto_clone(ga, 0,0,-1), _pgto_clone(gb, 0,0,-1), cx, cy, cz, m+1)
                 end if
 
                 ret = (pz-ga%cz)*abm - (pz-cz)*abmp1 + 0.5d0*(ga%nz-1)*(am1bm - am1bmp1)/zeta &

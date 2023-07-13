@@ -81,6 +81,7 @@ module hf
                 iterations = iterations + 1
                 write (*,*) "# of iterations", iterations
                 call hf_fock_matrix(s, mat_ch, mat_p, mat_f)
+                write (*,*) "fock matrix created"
 
                 call matrix_mult_normal_normal(mat_u, mat_sd, s%num_basis, s%num_basis, s%num_basis, mat_tmp)
                 call matrix_mult_normal_transpose(mat_tmp, mat_u, s%num_basis, s%num_basis, s%num_basis, mat_x)
@@ -300,8 +301,17 @@ module hf
             integer :: idx
 
             idx = _hf_eri_index(s, e1, e2, e3, e4)
+            if ( idx .gt. 6**4 ) then
+                write (*,*) "cache_overflow", idx
+                write (*,*) e1, e2
+                write (*,*) e3, e4
+                stop
+            end if
             if ( s%eri_table(idx) .eq. 0d0 ) then
+                write (*,*) "miss", e1*1000 + e2*100 + e3*10 + e4, idx
                 s%eri_table(idx) = stong_eri(BF(e1), BF(e2), BF(e3), BF(e4))
+            else
+                write (*,*) "hit", e1*1000 + e2*100 + e3*10 + e4, idx
             end if
 
             _hf_eri_cache = s%eri_table(idx)
