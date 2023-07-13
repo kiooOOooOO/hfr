@@ -604,6 +604,7 @@ module pgto
             ret = gzi * (3d0 - 2d0*gzi*r2) * _pgto_overlap0(ga, gb) ! norm multiplied in overlap0
         end function
 
+        ! FIXME m should not be passed from caller
         recursive function pgto_nuclear_attr(ga, gb, cx, cy, cz, m) result(ret)
             real(8), intent(out) :: ret
             type(pgto), intent(in) :: ga, gb
