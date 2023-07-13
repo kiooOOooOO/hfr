@@ -32,6 +32,9 @@ program hfr_main
         s%nucleuses(i)%charge = 1d0
     end do
 
+    allocate(s%eri_table(16))
+    s%eri_table = 0d0
+
     call hf_run_situation(s, energy)
     write (*,*) energy
 

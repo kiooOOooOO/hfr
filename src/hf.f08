@@ -15,9 +15,32 @@ module hf
 
         type(sto_ng), allocatable, dimension(:) :: basis_functions
         integer :: num_basis
+
+        real(8), allocatable, dimension(:) :: eri_table
     end type
 
     contains
+
+        pure function _hf_eri_index(s, e1, e2, e3, e4)
+            integer, intent(out) :: _hf_eri_index
+            type(situation), intent(in) :: s
+            integer, intent(in) :: e1, e2, e3, e4
+
+            integer :: ret, base, i
+
+            base = 1
+
+            ret = (e1-1)*base
+            base = base*s%num_basis
+            ret = (e2-1)*base
+            base = base*s%num_basis
+            ret = (e3-1)*base
+            base = base*s%num_basis
+            ret = (e4-1)*base
+            base = base*s%num_basis
+
+            _hf_eri_index = ret
+        end function
 
         subroutine hf_run_situation(s, energy)
             type(situation) :: s
@@ -182,7 +205,7 @@ module hf
 
         function hf_electron_energy(s, mat_ch, mat_p) result(energy)
             real(8), intent(out) :: energy
-            type(situation), intent(in) :: s
+            type(situation), intent(inout) :: s
             real(8), intent(in), dimension(:,:) :: mat_ch, mat_p
 
             integer :: nb
@@ -199,17 +222,15 @@ module hf
             end do
             end do
 
-#define BF(x) s%basis_functions(x)
             do k=1,nb
             do l=1,nb
             do m=1,nb
             do n=1,nb
-                val = val + 0.5d0*mat_p(l,k)*mat_p(n,m)*(stong_eri(BF(k),BF(m),BF(l),BF(n)) - 0.5d0*stong_eri(BF(k),BF(m),BF(n),BF(l)))
+                val = val + 0.5d0*mat_p(l,k)*mat_p(n,m)*(_hf_eri_cache(s, k, m, l, n) - 0.5d0*_hf_eri_cache(s, k, m, n, l))
             end do
             end do
             end do
             end do
-#undef BF
 
             energy = val
         end function
@@ -277,34 +298,46 @@ module hf
         end subroutine
 
         subroutine hf_fock_matrix(s, ch, matP, mat)
-            type(situation), intent(in) :: s
+            type(situation), intent(inout) :: s
             real(8), intent(in), dimension(:,:) :: ch, matP
             real(8), intent(out), dimension(:,:) :: mat
 
             integer :: r, c, i
             real(8) :: val
 
-#define BF(x) s%basis_functions(x)
-
             do i=0,s%num_basis**2 - 1
                 r = (i/s%num_basis) + 1
                 c = mod(i,s%num_basis) + 1
 
-                ! TODO use pre-calculated eri values
                 val = ch(r,c) &
-                    +       stong_eri(BF(r), BF(c), BF(r), BF(r))*matP(r,r) &
-                    +       stong_eri(BF(r), BF(c), BF(r), BF(c))*matP(r,c) &
-                    +       stong_eri(BF(r), BF(c), BF(c), BF(r))*matP(c,r) &
-                    +       stong_eri(BF(r), BF(c), BF(c), BF(c))*matP(c,c) &
-                    - 0.5d0*stong_eri(BF(r), BF(r), BF(r), BF(c))*matP(r,r) &
-                    - 0.5d0*stong_eri(BF(r), BF(r), BF(c), BF(c))*matP(c,r) &
-                    - 0.5d0*stong_eri(BF(r), BF(c), BF(r), BF(c))*matP(r,c) &
-                    - 0.5d0*stong_eri(BF(r), BF(c), BF(c), BF(c))*matP(c,c)
+                    + _hf_eri_cache(s, r, c, r, r)*matP(r,r) &
+                    + _hf_eri_cache(s, r, c, r, c)*matP(r,c) &
+                    + _hf_eri_cache(s, r, c, c, r)*matP(c,r) &
+                    + _hf_eri_cache(s, r, c, c, c)*matP(c,c) &
+                    - 0.5d0*_hf_eri_cache(s, r, r, r, c)*matP(r,r) &
+                    - 0.5d0*_hf_eri_cache(s, r, r, c, c)*matP(c,r) &
+                    - 0.5d0*_hf_eri_cache(s, r, c, r, c)*matP(r,c) &
+                    - 0.5d0*_hf_eri_cache(s, r, c, c, c)*matP(c,c)
 
                 mat(r,c) = val
             end do
-
-#undef BF
         end subroutine
+
+#define BF(x) s%basis_functions(x)
+        function _hf_eri_cache(s, e1, e2, e3, e4)
+            real(8), intent(out) :: _hf_eri_cache
+            type(situation), intent(inout) :: s
+            integer, intent(in) :: e1, e2, e3, e4
+
+            integer :: idx
+
+            idx = _hf_eri_index(s, e1, e2, e3, e4)
+            if ( s%eri_table(idx) .eq. 0d0 ) then
+                s%eri_table(idx) = stong_eri(BF(e1), BF(e2), BF(e3), BF(e4))
+            end if
+
+            _hf_eri_cache = s%eri_table(idx)
+        end function
+#undef BF
 
 end module
