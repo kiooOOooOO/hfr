@@ -32,14 +32,14 @@ module hf
 
             ret = (e1-1)*base
             base = base*s%num_basis
-            ret = (e2-1)*base
+            ret = (e2-1)*base + ret
             base = base*s%num_basis
-            ret = (e3-1)*base
+            ret = (e3-1)*base + ret
             base = base*s%num_basis
-            ret = (e4-1)*base
+            ret = (e4-1)*base + ret
             base = base*s%num_basis
 
-            _hf_eri_index = ret
+            _hf_eri_index = ret+1
         end function
 
         subroutine hf_run_situation(s, energy)
@@ -48,12 +48,8 @@ module hf
 
             real(8), allocatable, dimension(:,:) :: mat_s, mat_sd, mat_u, mat_p, mat_ch, mat_f
             real(8), allocatable, dimension(:,:) :: mat_tmp, mat_x, mat_fd, mat_e, mat_cd, mat_c
-!            real(8), dimension(2,2) :: mat_s, mat_sd, mat_u, mat_p, mat_ch, mat_f
-!            real(8), dimension(2,2) :: mat_tmp, mat_x, mat_fd, mat_e, mat_cd, mat_c
             integer :: i, iterations
             real(8) :: energy_diff, last_energy
-
-            write (*,*) "num_basis", s%num_basis
 
             allocate(mat_s(s%num_basis, s%num_basis))
             allocate(mat_sd(s%num_basis, s%num_basis))
@@ -68,66 +64,42 @@ module hf
             allocate(mat_cd(s%num_basis, s%num_basis))
             allocate(mat_c(s%num_basis, s%num_basis))
 
-            write (*,*) "allocated"
-
-            write (*,*) "creating overlap matrix"
             call hf_overlap_matrix(s, mat_s)
-            write (*,*) mat_s
             call matrix_sym_diagonalize(mat_s, s%num_basis, mat_sd, mat_u)
             do i=1,s%num_basis
                 mat_sd(i,i) = mat_sd(i,i)**-0.5d0
             end do
-            write (*,*) "diagonalized"
-            write (*,*) mat_sd
 
-            write (*,*) "creating core hamiltonian matrix"
             call hf_core_hamiltonian_matrix(s, mat_ch)
-            write (*,*) mat_ch
 
             mat_p = 0d0
 
             iterations = 0
             energy_diff = 1d0
-            last_energy = -100d0 ! FIXME this is not a good idea
+            last_energy = 0d0
             do while ( energy_diff .gt. 1e-6 )
                 iterations = iterations + 1
                 write (*,*) "# of iterations", iterations
-                write (*,*) "creating fock matrix"
                 call hf_fock_matrix(s, mat_ch, mat_p, mat_f)
-                write (*,*) mat_f
 
-                write (*,*) "creating transpose matrix"
                 call matrix_mult_normal_normal(mat_u, mat_sd, s%num_basis, s%num_basis, s%num_basis, mat_tmp)
                 call matrix_mult_normal_transpose(mat_tmp, mat_u, s%num_basis, s%num_basis, s%num_basis, mat_x)
-                write (*,*) mat_x
 
-                write (*,*) "creating transposed fock matrix"
                 call matrix_mult_transpose_normal(mat_x, mat_f, s%num_basis, s%num_basis, s%num_basis, mat_tmp)
                 call matrix_mult_normal_normal(mat_tmp, mat_x, s%num_basis, s%num_basis, s%num_basis, mat_fd)
-                write (*,*) mat_fd
 
-                write (*,*) "solving hfr"
                 call matrix_sym_diagonalize(mat_fd, s%num_basis, mat_e, mat_cd)
 
-                write (*,*) "asserting hfr result"
                 call hf_assert_hfr_answer(s%num_basis, mat_fd, mat_cd, mat_e)
-                write (*,*) "transposed coefficient matrix"
-                write (*,*) mat_cd
-                write (*,*) "energy matrix"
-                write (*,*) mat_e
 
-                write (*,*) "coefficient matrix"
                 call matrix_mult_normal_normal(mat_x, mat_cd, s%num_basis, s%num_basis, s%num_basis, mat_c)
-                write (*,*) mat_c
-                write (*,*) "creating density matrix"
                 call hf_density_matrix(s%num_basis, mat_c, mat_p)
-                write (*,*) mat_p
 
-                write (*,*) "calculating energy"
                 energy = hf_electron_energy(s, mat_ch, mat_p)
-                energy_diff = abs(energy - last_energy)
+                if ( last_energy .ne. 0d0 ) then
+                    energy_diff = abs(energy - last_energy)
+                end if
                 last_energy = energy
-                write (*,*) energy
             end do
 
             energy = energy + hf_potential_energy(s)
@@ -153,10 +125,8 @@ module hf
             real(8), allocatable, dimension(:,:) :: mat_left, mat_right
             integer :: r, c, i
 
-            write (*,*) "assertion allocating"
             allocate(mat_left(n,n))
             allocate(mat_right(n,n))
-            write (*,*) "assertion allocated"
 
             call matrix_mult_normal_normal(mat_fd, mat_cd, n, n, n, mat_left)
             call matrix_mult_normal_normal(mat_cd, mat_e, n, n, n, mat_right)
@@ -198,7 +168,6 @@ module hf
                     val = val + 2*mat_c(c,j)*mat_c(r,j)
                 end do
 
-                write (*,*) r, c, val
                 mat(r,c) = val
             end do
         end subroutine
@@ -246,7 +215,6 @@ module hf
 
             do i1=1,s%num_basis
             do i2=i1+1,s%num_basis
-                write (*,*) "POT",i1,i2
                 dist = sqrt((s%nucleuses(i1)%cx-s%nucleuses(i2)%cx)**2 + (s%nucleuses(i1)%cy-s%nucleuses(i2)%cy)**2 &
                     + (s%nucleuses(i1)%cz-s%nucleuses(i2)%cz)**2)
                 val = val + s%nucleuses(i1)%charge * s%nucleuses(i2)%charge / dist
@@ -339,5 +307,4 @@ module hf
             _hf_eri_cache = s%eri_table(idx)
         end function
 #undef BF
-
 end module
