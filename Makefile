@@ -18,3 +18,6 @@ samplemod: ${SRCDIR}/samplemod.f08
 
 pgto: ${SRCDIR}/pgto.f08
 	${FC} ${FC_FLAGS} -c ${SRCDIR}/pgto.f08 -o ${OUTDIR}/pgto.o
+
+sto_ng: pgto ${SRCDIR}/sto_ng.f08
+	${FC} ${FC_FLAGS} -c ${SRCDIR}/sto_ng.f08 -o ${OUTDIR}/sto_ng.o
