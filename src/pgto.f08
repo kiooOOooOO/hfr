@@ -186,8 +186,8 @@ module pgto
             qy = (gc%expo*gc%cy + gd%expo*gd%cy)/eta
             qz = (gc%expo*gc%cz + gd%expo*gd%cz)/eta
 
-            call gto_internal_division_point(px, py, pz, ga%expo, ga%cx, ga%cy, ga%cz, gb%expo, gb%cx, gb%cy, gb%cz)
-            call gto_internal_division_point(wx, wy, wz, zeta, px, py, pz, eta, qx, qy, qz)
+            call _pgto_internal_division_point(px, py, pz, ga%expo, ga%cx, ga%cy, ga%cz, gb%expo, gb%cx, gb%cy, gb%cz)
+            call _pgto_internal_division_point(wx, wy, wz, zeta, px, py, pz, eta, qx, qy, qz)
 
             if ( _pgto_all_n_zero(ga) .and. _pgto_all_n_zero(gb) .and. &
                  _pgto_all_n_zero(gc) .and. _pgto_all_n_zero(gd) ) then
