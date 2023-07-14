@@ -63,7 +63,7 @@ module sto_ng
             stong_overlap = sa%norm * sb%norm * r
         end function
 
-        function stong_eri(sa, sb, sc, sd)
+        pure function stong_eri(sa, sb, sc, sd)
             real(8), intent(out) :: stong_eri
             type(sto_ng), intent(in) :: sa, sb, sc, sd
 

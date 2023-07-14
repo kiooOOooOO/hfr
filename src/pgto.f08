@@ -1,3 +1,4 @@
+#define pure
 module pgto
     implicit none
 
@@ -8,6 +9,10 @@ module pgto
         real(8) :: expo
         real(8) :: norm
         integer :: nx, ny, nz
+    end type
+
+    type vec3d
+        real(8) :: x, y, z
     end type
 
     contains
@@ -56,10 +61,10 @@ module pgto
             ret = (g%nx .eq. 0) .and. (g%ny .eq. 0) .and. (g%nz .eq. 0)
         end function
 
-        function _pgto_clone(g, dnx, dny, dnz) result(ret)
-            type(pgto) :: ret
-            type(pgto) :: g
-            integer :: dnx, dny, dnz
+        pure function _pgto_clone(g, dnx, dny, dnz) result(ret)
+            type(pgto), intent(out) :: ret
+            type(pgto), intent(in) :: g
+            integer, intent(in) :: dnx, dny, dnz
 
             ret%expo = g%expo
             ret%cx = g%cx
@@ -70,20 +75,21 @@ module pgto
             ret%nz = g%nz + dnz
         end function
 
-        subroutine _pgto_internal_division_point(ox, oy, oz, a, ax, ay, az, b, bx, by, bz)
-            real(8), intent(out) :: ox, oy, oz
+        pure function _pgto_internal_division_point(a, ax, ay, az, b, bx, by, bz) result(ret)
+            type(vec3d), intent(out) :: ret
             real(8), intent(in) :: a, ax, ay, az, b, bx, by, bz
 
-            ox = (a*ax + b*bx)/(a+b)
-            oy = (a*ay + b*by)/(a+b)
-            oz = (a*az + b*bz)/(a+b)
-        end subroutine
+            ret%x = (a*ax + b*bx)/(a+b)
+            ret%y = (a*ay + b*by)/(a+b)
+            ret%z = (a*az + b*bz)/(a+b)
+        end function
 
         recursive function pgto_overlap(ga, gb) result(ret)
             real(8), intent(out) :: ret
             type(pgto), intent(in) :: ga, gb
 
             real(8) :: ab, am1b, abm1, zeta, px, py, pz
+            type(vec3d) :: point
 
             if ( _pgto_all_n_zero(ga) .and. _pgto_all_n_zero(gb) ) then
                 ret = _pgto_overlap0(ga, gb)
@@ -93,7 +99,10 @@ module pgto
                 am1b = 0
                 abm1 = 0
 
-                call _pgto_internal_division_point(px, py, pz, ga%expo, ga%cx, ga%cy, ga%cz, gb%expo, gb%cx, gb%cy, gb%cz)
+                point = _pgto_internal_division_point(ga%expo, ga%cx, ga%cy, ga%cz, gb%expo, gb%cx, gb%cy, gb%cz)
+                px = point%x
+                py = point%y
+                pz = point%z
 
                 if ( ga%nx .gt. 0 ) then
                     ab = pgto_overlap(_pgto_clone(ga, -1, 0, 0), gb)
@@ -141,17 +150,19 @@ module pgto
             ret = ga%norm * gb%norm * (PI/zeta)**1.5d0 * exp(-gzi*r2)
         end function
 
-        function pgto_eri(ga, gb, gc, gd) result(ret)
+        pure function pgto_eri(ga, gb, gc, gd) result(ret)
             real(8), intent(out) :: ret
             type(pgto), intent(in) :: ga, gb, gc, gd
 
             ret = ga%norm * gb%norm * gc%norm * gd%norm * _pgto_eri_internal(ga, gb, gc, gd, 0)
         end function
 
-        recursive function _pgto_eri_internal(ga, gb, gc, gd, m) result(ret)
+        pure recursive function _pgto_eri_internal(ga, gb, gc, gd, m) result(ret)
             real(8), intent(out) :: ret
             type(pgto), intent(in) :: ga, gb, gc, gd
             integer, intent(in) :: m
+
+            type(vec3d) :: point
 
             real(8) :: am0m, am0mp1
             real(8) :: am1m, am1mp1
@@ -186,8 +197,15 @@ module pgto
             qy = (gc%expo*gc%cy + gd%expo*gd%cy)/eta
             qz = (gc%expo*gc%cz + gd%expo*gd%cz)/eta
 
-            call _pgto_internal_division_point(px, py, pz, ga%expo, ga%cx, ga%cy, ga%cz, gb%expo, gb%cx, gb%cy, gb%cz)
-            call _pgto_internal_division_point(wx, wy, wz, zeta, px, py, pz, eta, qx, qy, qz)
+            point = _pgto_internal_division_point(ga%expo, ga%cx, ga%cy, ga%cz, gb%expo, gb%cx, gb%cy, gb%cz)
+            px = point%x
+            py = point%y
+            pz = point%z
+            point = _pgto_internal_division_point(zeta, px, py, pz, eta, qx, qy, qz)
+            wx = point%x
+            wy = point%y
+            wz = point%z
+
 
             if ( _pgto_all_n_zero(ga) .and. _pgto_all_n_zero(gb) .and. &
                  _pgto_all_n_zero(gc) .and. _pgto_all_n_zero(gd) ) then
@@ -458,20 +476,17 @@ module pgto
                      (0.5d0*gb%nz/zeta)*(bm1m - rho*bm1mp1/zeta) + &
                      (gc%nz*cm1mp1 + (gd%nz-1)*dm1mp1)/(2d0*(zeta+eta))
              else
-                 write (*,*) "warning"
-                 write (*,*) ga%nx, ga%ny, ga%nz
-                 write (*,*) gb%nx, gb%ny, gb%nz
-                 write (*,*) gc%nx, gc%ny, gc%nz
-                 write (*,*) gd%nx, gd%ny, gd%nz
-                 stop
+                 ret = -1000000d0
              end if
 
         end function
 
-        function _pgto_eri_internal0(ga, gb, gc, gd, m) result(ret)
+        pure function _pgto_eri_internal0(ga, gb, gc, gd, m) result(ret)
             real(8), intent(out) :: ret
             type(pgto), intent(in) :: ga, gb, gc, gd
             integer, intent(in) :: m
+
+            type(vec3d) :: point
 
             real(8) :: zeta, eta, rho
             real(8) :: qx, qy, qz
@@ -487,17 +502,18 @@ module pgto
             qz = (gc%expo*gc%cz + gd%expo*gd%cz)/eta
 
 
-            call _pgto_internal_division_point(px, py, pz, ga%expo, ga%cx, ga%cy, ga%cz, gb%expo, gb%cx, gb%cy, gb%cz)
+            point = _pgto_internal_division_point(ga%expo, ga%cx, ga%cy, ga%cz, gb%expo, gb%cx, gb%cy, gb%cz)
+            px = point%x
+            py = point%y
+            pz = point%z
 
             t = (px-qx)**2 + (py-qy)**2 + (pz-qz)**2
             t = rho * t
 
-
-
             ret = (zeta + eta)**-0.5d0 * _pgto_kappa(ga, gb) * _pgto_kappa(gc, gd) * _pgto_fm(t, m)
         end function
 
-        function _pgto_kappa(ga, gb) result(kappa)
+        pure function _pgto_kappa(ga, gb) result(kappa)
             real(8), intent(out) :: kappa
             type(pgto), intent(in) :: ga, gb
 
@@ -508,7 +524,7 @@ module pgto
             kappa = 2d0**0.5d0 * PI**1.25d0 * exp(-d2*ga%expo*gb%expo/(ga%expo + gb%expo)) / (ga%expo + gb%expo)
         end function
 
-        function _pgto_fm(t, m) result(fm)
+        pure function _pgto_fm(t, m) result(fm)
             real(8), intent(out) :: fm
             real(8), intent(in) :: t
             integer, intent(in) :: m
@@ -526,7 +542,7 @@ module pgto
             fm = sumation
         end function
 
-        function _pgto_fm_func(t, m, v) result(func)
+        pure function _pgto_fm_func(t, m, v) result(func)
             real(8), intent(out) :: func
             real(8), intent(in) :: t, v
             integer, intent(in) :: m
@@ -537,6 +553,8 @@ module pgto
         recursive function pgto_kinetic_energy(ga, gb) result(ret)
             real(8), intent(out) :: ret
             type(pgto), intent(in) :: ga, gb
+
+            type(vec3d) :: point
 
             real(8) :: ab, am1b, abm1, zeta, gzi, px, py, pz
             real(8) :: oap1b, oam1b
@@ -552,7 +570,10 @@ module pgto
                 oap1b = 0d0
                 oam1b = 0d0
 
-                call _pgto_internal_division_point(px, py, pz, ga%expo, ga%cx, ga%cy, ga%cz, gb%expo, gb%cx, gb%cy, gb%cz)
+                point = _pgto_internal_division_point(ga%expo, ga%cx, ga%cy, ga%cz, gb%expo, gb%cx, gb%cy, gb%cz)
+                px = point%x
+                py = point%y
+                pz = point%z
 
                 oap1b = pgto_overlap(ga, gb)
 
@@ -615,6 +636,8 @@ module pgto
             real(8), intent(in) :: cx, cy, cz
             integer, intent(in) :: m
 
+            type(vec3d) :: point
+
             real(8) :: zeta
             real(8) :: abm, abmp1, am1bm, am1bmp1, abm1m, abm1mp1
             real(8) :: px, py, pz
@@ -625,7 +648,10 @@ module pgto
             abm1mp1 = 0d0
 
             zeta = ga%expo + gb%expo
-            call _pgto_internal_division_point(px, py, pz, ga%expo, ga%cx, ga%cy, ga%cz, gb%expo, gb%cx, gb%cy, gb%cz)
+            point = _pgto_internal_division_point(ga%expo, ga%cx, ga%cy, ga%cz, gb%expo, gb%cx, gb%cy, gb%cz)
+            px = point%x
+            py = point%y
+            pz = point%z
 
             if ( _pgto_all_n_zero(ga) .and. _pgto_all_n_zero(gb) ) then
                 ret = _pgto_nuclear_attr0(ga, gb, cx, cy, cz, m)
@@ -688,9 +714,14 @@ module pgto
             real(8), intent(in) :: cx, cy, cz
             integer, intent(in) :: m
 
+            type(vec3d) :: point
+
             real(8) :: zeta, u, px, py, pz
 
-            call _pgto_internal_division_point(px, py, pz, ga%expo, ga%cx, ga%cy, ga%cz, gb%expo, gb%cx, gb%cy, gb%cz)
+            point = _pgto_internal_division_point(ga%expo, ga%cx, ga%cy, ga%cz, gb%expo, gb%cx, gb%cy, gb%cz)
+            px = point%x
+            py = point%y
+            pz = point%z
 
             zeta = ga%expo + gb%expo
             u = zeta * ((px-cx)**2 + (py-cy)**2 + (pz-cz)**2)
