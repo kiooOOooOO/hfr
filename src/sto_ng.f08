@@ -27,6 +27,20 @@ module sto_ng
             stong_new%norm = _stong_normalization_factor(n, pgtos, coefs)
         end function
 
+        pure function stong_clone(s) result(clone)
+            type(sto_ng), intent(out) :: clone
+            type(sto_ng), intent(in) :: s
+
+            allocate(clone%coefs(s%n))
+            allocate(clone%pgtos(s%n))
+
+            clone%n = s%n
+            clone%coefs = s%coefs
+            clone%pgtos = s%pgtos
+            clone%norm = s%norm
+        end function
+
+
         function _stong_normalization_factor(n, pgtos,coefs) result(ret)
             real(8), intent(out) :: ret
             integer, intent(in) :: n
@@ -67,7 +81,7 @@ module sto_ng
             real(8), intent(out) :: stong_eri
             type(sto_ng), intent(in) :: sa, sb, sc, sd
 
-            real(8) :: r
+            real(8) :: r, val
             integer :: a1, b1, c1, d1
 
             r =0d0
@@ -75,8 +89,9 @@ module sto_ng
             do b1=1,sb%n
             do c1=1,sc%n
             do d1=1,sd%n
+                val = pgto_eri(sa%pgtos(a1), sb%pgtos(b1), sc%pgtos(c1), sd%pgtos(d1))
                 r = r + sa%coefs(a1) * sb%coefs(b1) * sc%coefs(c1) * sd%coefs(d1) &
-                    * pgto_eri(sa%pgtos(a1), sb%pgtos(b1), sc%pgtos(c1), sd%pgtos(d1))
+                    * val
             end do
             end do
             end do

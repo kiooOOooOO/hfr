@@ -1,4 +1,3 @@
-#define pure
 module pgto
     implicit none
 
@@ -61,6 +60,8 @@ module pgto
             ret = (g%nx .eq. 0) .and. (g%ny .eq. 0) .and. (g%nz .eq. 0)
         end function
 
+        ! NOTE
+        ! cloned pgto won't calculate normalization factor
         pure function _pgto_clone(g, dnx, dny, dnz) result(ret)
             type(pgto), intent(out) :: ret
             type(pgto), intent(in) :: g
@@ -73,6 +74,7 @@ module pgto
             ret%nx = g%nx + dnx
             ret%ny = g%ny + dny
             ret%nz = g%nz + dnz
+            ret%norm = g%norm
         end function
 
         pure function _pgto_internal_division_point(a, ax, ay, az, b, bx, by, bz) result(ret)
@@ -206,7 +208,6 @@ module pgto
             wy = point%y
             wz = point%z
 
-
             if ( _pgto_all_n_zero(ga) .and. _pgto_all_n_zero(gb) .and. &
                  _pgto_all_n_zero(gc) .and. _pgto_all_n_zero(gd) ) then
 
@@ -233,6 +234,7 @@ module pgto
                      (0.5d0*(ga%nx-1)/zeta)*(am1m - rho*am1mp1/zeta) + &
                      (0.5d0*gb%nx/zeta)*(bm1m - rho*bm1mp1/zeta) + &
                      (gc%nx*cm1mp1 + gd%nx*dm1mp1)/(2d0*(zeta+eta))
+                 ! write (*,*) "ganx", ret
              else if ( ga%ny .gt. 0 ) then
                  am0m = _pgto_eri_internal(_pgto_clone(ga, 0, -1, 0), gb, gc, gd, m)
                  am0mp1 = _pgto_eri_internal(_pgto_clone(ga, 0, -1, 0), gb, gc, gd, m+1)
@@ -255,6 +257,7 @@ module pgto
                      (0.5d0*(ga%ny-1)/zeta)*(am1m - rho*am1mp1/zeta) + &
                      (0.5d0*gb%ny/zeta)*(bm1m - rho*bm1mp1/zeta) + &
                      (gc%ny*cm1mp1 + gd%ny*dm1mp1)/(2d0*(zeta+eta))
+                 ! write (*,*) "gany", ret
              else if ( ga%nz .gt. 0 ) then
                  am0m = _pgto_eri_internal(_pgto_clone(ga, 0, 0, -1), gb, gc, gd, m)
                  am0mp1 = _pgto_eri_internal(_pgto_clone(ga, 0, 0, -1), gb, gc, gd, m+1)
@@ -277,6 +280,7 @@ module pgto
                      (0.5d0*(ga%nz-1)/zeta)*(am1m - rho*am1mp1/zeta) + &
                      (0.5d0*gb%nz/zeta)*(bm1m - rho*bm1mp1/zeta) + &
                      (gc%nz*cm1mp1 + gd%nz*dm1mp1)/(2d0*(zeta+eta))
+                 ! write (*,*) "ganz", ret
              else if ( gb%nx .gt. 0 )  then
                  am0m = _pgto_eri_internal(ga, _pgto_clone(gb, -1, 0, 0), gc, gd, m)
                  am0mp1 = _pgto_eri_internal(ga, _pgto_clone(gb, -1, 0, 0), gc, gd, m+1)
@@ -299,6 +303,7 @@ module pgto
                      (0.5d0*ga%nx/zeta)*(am1m - rho*am1mp1/zeta) + &
                      (0.5d0*(gb%nx-1)/zeta)*(bm1m - rho*bm1mp1/zeta) + &
                      (gc%nx*cm1mp1 + gd%nx*dm1mp1)/(2d0*(zeta+eta))
+                 ! write (*,*) "gbnx", ret
              else if ( gb%ny .gt. 0 ) then
                  am0m = _pgto_eri_internal(ga, _pgto_clone(gb, 0, -1, 0), gc, gd, m)
                  am0mp1 = _pgto_eri_internal(ga, _pgto_clone(gb, 0, -1, 0), gc, gd, m+1)
@@ -321,6 +326,7 @@ module pgto
                      (0.5d0*ga%ny/zeta)*(am1m - rho*am1mp1/zeta) + &
                      (0.5d0*(gb%ny-1)/zeta)*(bm1m - rho*bm1mp1/zeta) + &
                      (gc%ny*cm1mp1 + gd%ny*dm1mp1)/(2d0*(zeta+eta))
+                 ! write (*,*) "gbny", ret
              else if ( gb%nz .gt. 0 ) then
                  am0m = _pgto_eri_internal(ga, _pgto_clone(gb, 0, 0, -1), gc, gd, m)
                  am0mp1 = _pgto_eri_internal(ga, _pgto_clone(gb, 0, 0, -1), gc, gd, m+1)
@@ -343,6 +349,7 @@ module pgto
                      (0.5d0*ga%nz/zeta)*(am1m - rho*am1mp1/zeta) + &
                      (0.5d0*(gb%nz-1)/zeta)*(bm1m - rho*bm1mp1/zeta) + &
                      (gc%nz*cm1mp1 + gd%nz*dm1mp1)/(2d0*(zeta+eta))
+                 ! write (*,*) "gbnz", ret
              else if ( gc%nx .gt. 0 )  then
                  am0m = _pgto_eri_internal(ga, gb, _pgto_clone(gc, -1, 0, 0), gd, m)
                  am0mp1 = _pgto_eri_internal(ga, gb, _pgto_clone(gc, -1, 0, 0), gd, m+1)
@@ -365,6 +372,7 @@ module pgto
                      (0.5d0*ga%nx/zeta)*(am1m - rho*am1mp1/zeta) + &
                      (0.5d0*gb%nx/zeta)*(bm1m - rho*bm1mp1/zeta) + &
                      ((gc%nx-1)*cm1mp1 + gd%nx*dm1mp1)/(2d0*(zeta+eta))
+                 ! write (*,*) "gcnx", ret
              else if ( gc%ny .gt. 0 ) then
                  am0m = _pgto_eri_internal(ga, gb, _pgto_clone(gc, 0, -1, 0), gd, m)
                  am0mp1 = _pgto_eri_internal(ga, gb, _pgto_clone(gc, 0, -1, 0), gd, m+1)
@@ -387,6 +395,7 @@ module pgto
                      (0.5d0*ga%ny/zeta)*(am1m - rho*am1mp1/zeta) + &
                      (0.5d0*gb%ny/zeta)*(bm1m - rho*bm1mp1/zeta) + &
                      ((gc%ny-1)*cm1mp1 + gd%ny*dm1mp1)/(2d0*(zeta+eta))
+                 ! write (*,*) "gcny", ret
              else if ( gc%nz .gt. 0 ) then
                  am0m = _pgto_eri_internal(ga, gb, _pgto_clone(gc, 0, 0, -1), gd, m)
                  am0mp1 = _pgto_eri_internal(ga, gb, _pgto_clone(gc, 0, 0, -1), gd, m+1)
@@ -409,6 +418,7 @@ module pgto
                      (0.5d0*ga%nz/zeta)*(am1m - rho*am1mp1/zeta) + &
                      (0.5d0*gb%nz/zeta)*(bm1m - rho*bm1mp1/zeta) + &
                      ((gc%nz-1)*cm1mp1 + gd%nz*dm1mp1)/(2d0*(zeta+eta))
+                 ! write (*,*) "gcnz", ret
              else if ( gd%nx .gt. 0 )  then
                  am0m = _pgto_eri_internal(ga, gb, gc, _pgto_clone(gd, -1, 0, 0), m)
                  am0mp1 = _pgto_eri_internal(ga, gb, gc, _pgto_clone(gd, -1, 0, 0), m+1)
@@ -431,6 +441,7 @@ module pgto
                      (0.5d0*ga%nx/zeta)*(am1m - rho*am1mp1/zeta) + &
                      (0.5d0*gb%nx/zeta)*(bm1m - rho*bm1mp1/zeta) + &
                      (gc%nx*cm1mp1 + (gd%nx-1)*dm1mp1)/(2d0*(zeta+eta))
+                 ! write (*,*) "gdnx", ret
              else if ( gd%ny .gt. 0 ) then
                  am0m = _pgto_eri_internal(ga, gb, gc, _pgto_clone(gd, 0, -1, 0), m)
                  am0mp1 = _pgto_eri_internal(ga, gb, gc, _pgto_clone(gd, 0, -1, 0), m+1)
@@ -453,6 +464,7 @@ module pgto
                      (0.5d0*ga%ny/zeta)*(am1m - rho*am1mp1/zeta) + &
                      (0.5d0*gb%ny/zeta)*(bm1m - rho*bm1mp1/zeta) + &
                      (gc%ny*cm1mp1 + (gd%ny-1)*dm1mp1)/(2d0*(zeta+eta))
+                 ! write (*,*) "gdny", ret
              else if ( gd%nz .gt. 0 ) then
                  am0m = _pgto_eri_internal(ga, gb, gc, _pgto_clone(gd, 0, 0, -1), m)
                  am0mp1 = _pgto_eri_internal(ga, gb, gc, _pgto_clone(gd, 0, 0, -1), m+1)
@@ -475,6 +487,7 @@ module pgto
                      (0.5d0*ga%nz/zeta)*(am1m - rho*am1mp1/zeta) + &
                      (0.5d0*gb%nz/zeta)*(bm1m - rho*bm1mp1/zeta) + &
                      (gc%nz*cm1mp1 + (gd%nz-1)*dm1mp1)/(2d0*(zeta+eta))
+                 ! write (*,*) "gdnz", ret
              else
                  ret = -1000000d0
              end if

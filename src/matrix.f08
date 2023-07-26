@@ -97,8 +97,8 @@ module matrix
             matR = 0
             do i=1,nlen
             do j=1,nlen
-                matR(i,i) = evals(i)
-                matU(i,j) = evecs(j,i)
+               matR(i,i) = evals(i)
+               matU(i,j) = evecs(j,i)
             end do
             end do
 
@@ -176,6 +176,9 @@ module matrix
 
                 end do
             end do
+
+!            write (*,*) ">", matT
+!            write (*,*) ">>", matE
 
             do i=1,nlen
                 evals(i) = matT(i,i)

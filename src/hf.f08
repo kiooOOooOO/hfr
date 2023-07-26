@@ -51,6 +51,10 @@ module hf
             integer :: i, iterations
             real(8) :: energy_diff, last_energy
 
+            write (*,*) "creating eri table...."
+            call _hf_create_eri_table(s)
+            write (*,*) "done"
+
             allocate(mat_s(s%num_basis, s%num_basis))
             allocate(mat_sd(s%num_basis, s%num_basis))
             allocate(mat_u(s%num_basis, s%num_basis))
@@ -70,8 +74,12 @@ module hf
                 mat_sd(i,i) = mat_sd(i,i)**-0.5d0
             end do
 
+            call matrix_mult_normal_normal(mat_u, mat_sd, s%num_basis, s%num_basis, s%num_basis, mat_tmp)
+            call matrix_mult_normal_transpose(mat_tmp, mat_u, s%num_basis, s%num_basis, s%num_basis, mat_x)
+
             call hf_core_hamiltonian_matrix(s, mat_ch)
 
+            mat_c = 0d0
             mat_p = 0d0
 
             iterations = 0
@@ -80,21 +88,38 @@ module hf
             do while ( energy_diff .gt. 1e-6 )
                 iterations = iterations + 1
                 write (*,*) "# of iterations", iterations
-                call hf_fock_matrix(s, mat_ch, mat_p, mat_f)
+                call hf_fock_matrix(s, mat_ch, mat_c, mat_f)
                 write (*,*) "fock matrix created"
+                write (*,*) mat_f(1,1:2)
+                write (*,*) mat_f(2,1:2)
 
-                call matrix_mult_normal_normal(mat_u, mat_sd, s%num_basis, s%num_basis, s%num_basis, mat_tmp)
-                call matrix_mult_normal_transpose(mat_tmp, mat_u, s%num_basis, s%num_basis, s%num_basis, mat_x)
 
                 call matrix_mult_transpose_normal(mat_x, mat_f, s%num_basis, s%num_basis, s%num_basis, mat_tmp)
                 call matrix_mult_normal_normal(mat_tmp, mat_x, s%num_basis, s%num_basis, s%num_basis, mat_fd)
 
+                call hf_assert_matrix_symetric(s%num_basis, mat_fd)
+
+                write (*,*) "transposed fock matrix"
+                write (*,*) mat_fd(1,1:2)
+                write (*,*) mat_fd(2,1:2)
+
                 call matrix_sym_diagonalize(mat_fd, s%num_basis, mat_e, mat_cd)
 
                 call hf_assert_hfr_answer(s%num_basis, mat_fd, mat_cd, mat_e)
+                write (*,*) "transposed coefficient matrix"
+                write (*,*) mat_cd(1,1:2)
+                write (*,*) mat_cd(2,1:2)
 
                 call matrix_mult_normal_normal(mat_x, mat_cd, s%num_basis, s%num_basis, s%num_basis, mat_c)
+                write (*,*) "coefficient matrix"
+                write (*,*) mat_c(1,1:2)
+                write (*,*) mat_c(2,1:2)
+                write (*,*) "energy matrix"
+                write (*,*) mat_e(1,1:2)
+                write (*,*) mat_e(2,1:2)
                 call hf_density_matrix(s%num_basis, mat_c, mat_p)
+
+                call hf_assert_hf_answer(s%num_basis, mat_f, mat_c, mat_s, mat_e)
 
                 energy = hf_electron_energy(s, mat_ch, mat_p)
                 if ( last_energy .ne. 0d0 ) then
@@ -103,7 +128,23 @@ module hf
                 last_energy = energy
             end do
 
+            write (*,*) "electron energy", energy
             energy = energy + hf_potential_energy(s)
+
+            write (*,*) "########"
+                write (*,*) "transposed fock matrix"
+                write (*,*) mat_fd(1,1:2)
+                write (*,*) mat_fd(2,1:2)
+
+                write (*,*) "transposed coefficient matrix"
+                write (*,*) mat_cd(1,1:2)
+                write (*,*) mat_cd(2,1:2)
+
+                write (*,*) "F'C'"
+                call matrix_mult_normal_normal(mat_fd, mat_cd, 2, 2, 2, mat_tmp)
+                write (*,*) mat_tmp(1,1:2)
+                write (*,*) mat_tmp(2,1:2)
+            write (*,*) "########"
 
             deallocate(mat_s)
             deallocate(mat_sd)
@@ -119,7 +160,68 @@ module hf
             deallocate(mat_c)
         end subroutine
 
-        subroutine hf_assert_hfr_answer(n, mat_fd, mat_cd, mat_e)
+        subroutine hf_assert_matrix_symetric(n, mat)!{{{
+            integer, intent(in) :: n
+            real(8), dimension(:,:) :: mat
+
+            integer :: r, c
+            logical :: assert
+
+            assert = .false.
+
+            do r=1,n
+            do c=1,n
+                if ( abs(mat(r,c) - mat(c,r)) .gt. 1e-4 ) then
+                    write (*,*) "symmetric matrix not symmetric"
+                    write (*,*) r, c, mat(r,c)
+                    write (*,*) c, r, mat(c,r)
+                    assert = .true.
+                end if
+            end do
+            end do
+
+            if ( assert ) then
+                stop
+            end if
+        end subroutine!}}}
+
+        subroutine hf_assert_hf_answer(n, mat_f, mat_c, mat_s, mat_e)!{{{
+            integer, intent(in) :: n
+            real(8), dimension(:,:) :: mat_f, mat_c, mat_s, mat_e
+
+            real(8), allocatable, dimension(:,:) :: mat_left, mat_right, mat_tmp
+            integer :: r, c
+
+            allocate(mat_left(n,n))
+            allocate(mat_right(n,n))
+            allocate(mat_tmp(n,n))
+
+            call matrix_mult_normal_normal(mat_f, mat_c, n, n, n, mat_left)
+            call matrix_mult_normal_normal(mat_s, mat_c, n, n, n, mat_tmp)
+            call matrix_mult_normal_normal(mat_tmp, mat_e, n, n, n, mat_right)
+            do r=1,n
+            do c=1,n
+                if ( abs(mat_left(r,c) - mat_right(r,c)) .gt. 1e-4 ) then
+                    write (*,*) "hf error"
+                    write (*,*) "left"
+                    write (*,*) mat_left
+
+                    write (*,*) "right"
+                    write (*,*) mat_right
+
+                    stop
+                end if
+            end do
+            end do
+
+            write (*,*) "Hartree-Fock assertion passed"
+
+            deallocate(mat_left)
+            deallocate(mat_right)
+            deallocate(mat_tmp)
+        end subroutine!}}}
+
+        subroutine hf_assert_hfr_answer(n, mat_fd, mat_cd, mat_e)!{{{
             integer, intent(in) :: n
             real(8), dimension(:,:) :: mat_fd, mat_cd, mat_e
 
@@ -132,10 +234,8 @@ module hf
             call matrix_mult_normal_normal(mat_fd, mat_cd, n, n, n, mat_left)
             call matrix_mult_normal_normal(mat_cd, mat_e, n, n, n, mat_right)
 
-            do i=0,n**2-1
-                r = (i/n) + 1
-                c = mod(i,n) + 1
-
+            do r=1,n
+            do c=1,n
                 if ( abs(mat_left(r,c) - mat_right(r,c)) .gt. 1e-4 ) then
                     write (*,*) "hfr error"
                     write (*,*) "left"
@@ -147,10 +247,11 @@ module hf
                     stop
                 end if
             end do
+            end do
 
             deallocate(mat_left)
             deallocate(mat_right)
-        end subroutine
+        end subroutine!}}}
 
         subroutine hf_density_matrix(n, mat_c, mat)
             integer, intent(in) :: n
@@ -160,10 +261,8 @@ module hf
             integer :: r, c, i, j
             real(8) :: val
 
-            do i=0,n**2-1
-                r = (i/n) + 1
-                c = mod(i,n) + 1
-
+            mat = 0d0
+            do concurrent(r=1:n, c=1:n) local(val, j)
                 val = 0d0
                 do j=1,n/2
                     val = val + 2*mat_c(c,j)*mat_c(r,j)
@@ -266,53 +365,100 @@ module hf
             end do
         end subroutine
 
-        subroutine hf_fock_matrix(s, ch, matP, mat)
+        subroutine hf_fock_matrix(s, ch, matC, mat)
             type(situation), intent(inout) :: s
-            real(8), intent(in), dimension(:,:) :: ch, matP
+            real(8), intent(in), dimension(:,:) :: ch, matC
             real(8), intent(out), dimension(:,:) :: mat
 
-            integer :: r, c, i
+            integer :: k, l, j, m, n
             real(8) :: val
 
-            do i=0,s%num_basis**2 - 1
-                r = (i/s%num_basis) + 1
-                c = mod(i,s%num_basis) + 1
+            do k=1,s%num_basis
+            do l=1,s%num_basis
+                val = ch(k,l)
 
-                val = ch(r,c) &
-                    + _hf_eri_cache(s, r, c, r, r)*matP(r,r) &
-                    + _hf_eri_cache(s, r, c, r, c)*matP(r,c) &
-                    + _hf_eri_cache(s, r, c, c, r)*matP(c,r) &
-                    + _hf_eri_cache(s, r, c, c, c)*matP(c,c) &
-                    - 0.5d0*_hf_eri_cache(s, r, r, r, c)*matP(r,r) &
-                    - 0.5d0*_hf_eri_cache(s, r, r, c, c)*matP(c,r) &
-                    - 0.5d0*_hf_eri_cache(s, r, c, r, c)*matP(r,c) &
-                    - 0.5d0*_hf_eri_cache(s, r, c, c, c)*matP(c,c)
+                do j=1,s%num_electrons/2
+                    do m=1,s%num_basis
+                    do n=1,s%num_basis
+                        val = val + (2d0*_hf_eri_cache(s,k,m,l,n)-_hf_eri_cache(s,k,m,n,l))*matC(m,j)*matC(n,j)
+                    end do
+                    end do
+                end do
 
-                mat(r,c) = val
+                mat(k,l) = val
             end do
+            end do
+
+!            integer :: r, c, i, j
+!            real(8) :: val
+!
+!            do r=1,s%num_basis
+!            do c=1,s%num_basis
+!                val = ch(r,c)
+!                do i=1,s%num_basis
+!                do j=1,s%num_basis
+!                    val = val + matP(i,j)*(_hf_eri_cache(s, r, c, i, j) - 0.5d0*_hf_eri_cache(s,r,j,i,c))
+!                end do
+!                end do
+!
+!!                val = ch(r,c) &
+!!                    + _hf_eri_cache(s, r, c, r, r)*matP(r,r) &
+!!                    + _hf_eri_cache(s, r, c, r, c)*matP(r,c) &
+!!                    + _hf_eri_cache(s, r, c, c, r)*matP(c,r) &
+!!                    + _hf_eri_cache(s, r, c, c, c)*matP(c,c) &
+!!                    - 0.5d0*_hf_eri_cache(s, r, r, r, c)*matP(r,r) &
+!!                    - 0.5d0*_hf_eri_cache(s, r, r, c, c)*matP(c,r) &
+!!                    - 0.5d0*_hf_eri_cache(s, r, c, r, c)*matP(r,c) &
+!!                    - 0.5d0*_hf_eri_cache(s, r, c, c, c)*matP(c,c)
+!
+!                mat(r,c) = val
+!            end do
+!            end do
         end subroutine
 
 #define BF(x) s%basis_functions(x)
-        function _hf_eri_cache(s, e1, e2, e3, e4)
-            real(8), intent(out) :: _hf_eri_cache
+        subroutine hf_test_eri(s)
             type(situation), intent(inout) :: s
+
+            real(8) :: val
+
+            val = stong_eri(BF(3), BF(2), BF(6), BF(1))
+            write (*,*) 3261, val
+        end subroutine
+
+        subroutine _hf_create_eri_table(s)
+            type(situation), intent(inout) :: s
+            integer :: e1, e2, e3, e4, idx, n
+            real(8) :: val
+
+            n = s%num_basis
+            do concurrent(e1=1:n, e2=1:n, e3=1:n, e4=1:n) local(idx, val)
+                idx = _hf_eri_index(s, e1, e2, e3, e4)
+                val = stong_eri(BF(e1), BF(e2), BF(e3), BF(e4))
+
+                s%eri_table(idx) = val
+            end do
+
+            do e1=1,n
+            do e2=1,n
+            do e3=1,n
+            do e4=1,n
+                idx = _hf_eri_index(s, e1, e2, e3, e4)
+                write (*,'(I6,I6,I6,I6,I6,E16.8)') idx, e1, e2, e3, e4, s%eri_table(idx)
+            end do
+            end do
+            end do
+            end do
+        end subroutine
+
+        pure function _hf_eri_cache(s, e1, e2, e3, e4)
+            real(8), intent(out) :: _hf_eri_cache
+            type(situation), intent(in) :: s
             integer, intent(in) :: e1, e2, e3, e4
 
             integer :: idx
 
             idx = _hf_eri_index(s, e1, e2, e3, e4)
-            if ( idx .gt. 6**4 ) then
-                write (*,*) "cache_overflow", idx
-                write (*,*) e1, e2
-                write (*,*) e3, e4
-                stop
-            end if
-            if ( s%eri_table(idx) .eq. 0d0 ) then
-                write (*,*) "miss", e1*1000 + e2*100 + e3*10 + e4, idx
-                s%eri_table(idx) = stong_eri(BF(e1), BF(e2), BF(e3), BF(e4))
-            else
-                write (*,*) "hit", e1*1000 + e2*100 + e3*10 + e4, idx
-            end if
 
             _hf_eri_cache = s%eri_table(idx)
         end function
