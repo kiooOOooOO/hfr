@@ -70,14 +70,23 @@ module hf
 
             call hf_overlap_matrix(s, mat_s)
             call matrix_sym_diagonalize(mat_s, s%num_basis, mat_sd, mat_u)
+            write (*,*) "mat_sd"
+            write (*,*) mat_sd(1,1:2)
+            write (*,*) mat_sd(2,1:2)
             do i=1,s%num_basis
                 mat_sd(i,i) = mat_sd(i,i)**-0.5d0
             end do
 
             call matrix_mult_normal_normal(mat_u, mat_sd, s%num_basis, s%num_basis, s%num_basis, mat_tmp)
             call matrix_mult_normal_transpose(mat_tmp, mat_u, s%num_basis, s%num_basis, s%num_basis, mat_x)
+            write (*,*) "mat_x"
+            write (*,*) mat_x(1,1:2)
+            write (*,*) mat_x(2,1:2)
 
             call hf_core_hamiltonian_matrix(s, mat_ch)
+            write (*,*) "core hamiltonian"
+            write (*,*) mat_ch(1,1:2)
+            write (*,*) mat_ch(2,1:2)
 
             mat_c = 0d0
             mat_p = 0d0
@@ -88,12 +97,17 @@ module hf
             do while ( energy_diff .gt. 1e-6 )
                 iterations = iterations + 1
                 write (*,*) "# of iterations", iterations
+
+                write (*,*) "coefficient matrix"
+                write (*,*) mat_c(1,1:2)
+                write (*,*) mat_c(2,1:2)
+
                 call hf_fock_matrix(s, mat_ch, mat_c, mat_f)
                 write (*,*) "fock matrix created"
                 write (*,*) mat_f(1,1:2)
                 write (*,*) mat_f(2,1:2)
 
-
+                ! F' <- Xt*F*X
                 call matrix_mult_transpose_normal(mat_x, mat_f, s%num_basis, s%num_basis, s%num_basis, mat_tmp)
                 call matrix_mult_normal_normal(mat_tmp, mat_x, s%num_basis, s%num_basis, s%num_basis, mat_fd)
 
@@ -103,6 +117,7 @@ module hf
                 write (*,*) mat_fd(1,1:2)
                 write (*,*) mat_fd(2,1:2)
 
+                ! F'C' = C'e
                 call matrix_sym_diagonalize(mat_fd, s%num_basis, mat_e, mat_cd)
 
                 call hf_assert_hfr_answer(s%num_basis, mat_fd, mat_cd, mat_e)
@@ -110,13 +125,16 @@ module hf
                 write (*,*) mat_cd(1,1:2)
                 write (*,*) mat_cd(2,1:2)
 
+                ! C <- XC'
                 call matrix_mult_normal_normal(mat_x, mat_cd, s%num_basis, s%num_basis, s%num_basis, mat_c)
+
                 write (*,*) "coefficient matrix"
                 write (*,*) mat_c(1,1:2)
                 write (*,*) mat_c(2,1:2)
                 write (*,*) "energy matrix"
                 write (*,*) mat_e(1,1:2)
                 write (*,*) mat_e(2,1:2)
+
                 call hf_density_matrix(s%num_basis, mat_c, mat_p)
 
                 call hf_assert_hf_answer(s%num_basis, mat_f, mat_c, mat_s, mat_e)
@@ -130,21 +148,6 @@ module hf
 
             write (*,*) "electron energy", energy
             energy = energy + hf_potential_energy(s)
-
-            write (*,*) "########"
-                write (*,*) "transposed fock matrix"
-                write (*,*) mat_fd(1,1:2)
-                write (*,*) mat_fd(2,1:2)
-
-                write (*,*) "transposed coefficient matrix"
-                write (*,*) mat_cd(1,1:2)
-                write (*,*) mat_cd(2,1:2)
-
-                write (*,*) "F'C'"
-                call matrix_mult_normal_normal(mat_fd, mat_cd, 2, 2, 2, mat_tmp)
-                write (*,*) mat_tmp(1,1:2)
-                write (*,*) mat_tmp(2,1:2)
-            write (*,*) "########"
 
             deallocate(mat_s)
             deallocate(mat_sd)
@@ -272,7 +275,7 @@ module hf
             end do
         end subroutine
 
-        function hf_electron_energy(s, mat_ch, mat_p) result(energy)
+        function hf_electron_energy(s, mat_ch, mat_p) result(energy)!{{{
             real(8), intent(out) :: energy
             type(situation), intent(inout) :: s
             real(8), intent(in), dimension(:,:) :: mat_ch, mat_p
@@ -302,9 +305,9 @@ module hf
             end do
 
             energy = val
-        end function
+        end function!}}}
 
-        function hf_potential_energy(s) result(energy)
+        function hf_potential_energy(s) result(energy)!{{{
             real(8), intent(out) :: energy
             type(situation), intent(in) :: s
 
@@ -322,9 +325,9 @@ module hf
             end do
 
             energy = val
-        end function
+        end function!}}}
 
-        subroutine hf_overlap_matrix(s, mat)
+        subroutine hf_overlap_matrix(s, mat)!{{{
             type(situation), intent(in) :: s
             real(8), intent(out), dimension(:,:) :: mat
 
@@ -338,9 +341,9 @@ module hf
                 val = stong_overlap(s%basis_functions(r), s%basis_functions(c))
                 mat(r,c) = val
             end do
-        end subroutine
+        end subroutine!}}}
 
-        subroutine hf_core_hamiltonian_matrix(s, mat)
+        subroutine hf_core_hamiltonian_matrix(s, mat)!{{{
             type(situation), intent(in) :: s
             real(8), intent(out), dimension(:,:) :: mat
 
@@ -363,7 +366,7 @@ module hf
 
                 mat(r,c) = val
             end do
-        end subroutine
+        end subroutine!}}}
 
         subroutine hf_fock_matrix(s, ch, matC, mat)
             type(situation), intent(inout) :: s
@@ -380,7 +383,7 @@ module hf
                 do j=1,s%num_electrons/2
                     do m=1,s%num_basis
                     do n=1,s%num_basis
-                        val = val + (2d0*_hf_eri_cache(s,k,m,l,n)-_hf_eri_cache(s,k,m,n,l))*matC(m,j)*matC(n,j)
+                        val = val + (2d0*_hf_eri_cache(s,k,l,m,n)-_hf_eri_cache(s,k,n,m,l))*matC(m,j)*matC(n,j)
                     end do
                     end do
                 end do
@@ -388,32 +391,6 @@ module hf
                 mat(k,l) = val
             end do
             end do
-
-!            integer :: r, c, i, j
-!            real(8) :: val
-!
-!            do r=1,s%num_basis
-!            do c=1,s%num_basis
-!                val = ch(r,c)
-!                do i=1,s%num_basis
-!                do j=1,s%num_basis
-!                    val = val + matP(i,j)*(_hf_eri_cache(s, r, c, i, j) - 0.5d0*_hf_eri_cache(s,r,j,i,c))
-!                end do
-!                end do
-!
-!!                val = ch(r,c) &
-!!                    + _hf_eri_cache(s, r, c, r, r)*matP(r,r) &
-!!                    + _hf_eri_cache(s, r, c, r, c)*matP(r,c) &
-!!                    + _hf_eri_cache(s, r, c, c, r)*matP(c,r) &
-!!                    + _hf_eri_cache(s, r, c, c, c)*matP(c,c) &
-!!                    - 0.5d0*_hf_eri_cache(s, r, r, r, c)*matP(r,r) &
-!!                    - 0.5d0*_hf_eri_cache(s, r, r, c, c)*matP(c,r) &
-!!                    - 0.5d0*_hf_eri_cache(s, r, c, r, c)*matP(r,c) &
-!!                    - 0.5d0*_hf_eri_cache(s, r, c, c, c)*matP(c,c)
-!
-!                mat(r,c) = val
-!            end do
-!            end do
         end subroutine
 
 #define BF(x) s%basis_functions(x)

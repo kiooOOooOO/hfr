@@ -97,8 +97,8 @@ module matrix
             matR = 0
             do i=1,nlen
             do j=1,nlen
-               matR(i,i) = evals(i)
-               matU(i,j) = evecs(j,i)
+               matR(nlen-i+1,nlen-i+1) = evals(i)
+               matU(i,nlen-j+1) = evecs(j,i)
             end do
             end do
 

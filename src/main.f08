@@ -27,6 +27,7 @@ program hfr_main
     s%nucleuses(2)%charge = 1d0
 
     s%num_basis = 2
+    s%num_electrons = 2
     allocate(s%basis_functions(2))
 
     ! H-1s
