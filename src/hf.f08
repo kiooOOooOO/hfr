@@ -19,7 +19,67 @@ module hf
         real(8), allocatable, dimension(:) :: eri_table
     end type
 
+    type situation_result
+        real(8) :: molecular_energy
+
+        real(8) :: nucleus_potential_energy
+
+        real(8) :: electron_energy
+
+        integer :: num_orbitals
+
+        ! (i,j) -> j 番目の軌道の i 番目の既定関数に対する係数
+        real(8), allocatable, dimension(:,:) :: orbital_coefficients
+
+        real(8), allocatable, dimension(:) :: orbital_energies
+    end type
+
     contains
+
+        subroutine hf_dump_situation_result(s, sr)
+            type(situation), intent(in) :: s
+            type(situation_result), intent(in) :: sr
+
+            integer :: i, j
+
+            write (*,'(A)') "[Metadata]"
+            write (*,'(A)') "Title=SituationResult"
+            write (*,'("NumElectrons=",I0)') s%num_electrons
+            write (*,'("NumOrbitals=",I0)') sr%num_orbitals
+            write (*,'("NumNucleus=",I0)') s%num_nucleuses
+            write (*,'(A)') ""
+
+            write (*,'(A)') "[Nucleus]"
+            do i=1,s%num_nucleuses
+                write (*,'(4(E15.4e2))') s%nucleuses(i)%cx, s%nucleuses(i)%cy, s%nucleuses(i)%cz, s%nucleuses(i)%charge
+            end do
+            write (*,'(A)') ""
+
+            write (*,'(A)') "[Basis]"
+            do i=1,s%num_basis
+                write (*,'(I3,E15.4e2)') s%basis_functions(i)%n, s%basis_functions(i)%norm
+                do j=1,s%basis_functions(i)%n
+                    write (*,'(3(E15.4),3(I5),2(E15.4))') &
+                        s%basis_functions(i)%pgtos(j)%cx, &
+                        s%basis_functions(i)%pgtos(j)%cy, &
+                        s%basis_functions(i)%pgtos(j)%cz, &
+                        s%basis_functions(i)%pgtos(j)%nx, &
+                        s%basis_functions(i)%pgtos(j)%ny, &
+                        s%basis_functions(i)%pgtos(j)%nz, &
+                        s%basis_functions(i)%pgtos(j)%norm * s%basis_functions(i)%coefs(j), &
+                        s%basis_functions(i)%pgtos(j)%expo
+                end do
+            end do
+            write (*,'(A)') ""
+
+            write (*,'(A)') "[Orbitals]"
+            do i=1,sr%num_orbitals
+                do j=1,s%num_basis
+                    write (*,'(E15.4)') sr%orbital_coefficients(j, i)
+                end do
+            end do
+
+        end subroutine
 
         pure function _hf_eri_index(s, e1, e2, e3, e4)
             integer, intent(out) :: _hf_eri_index
@@ -42,8 +102,9 @@ module hf
             _hf_eri_index = ret+1
         end function
 
-        subroutine hf_run_situation(s, energy)
+        subroutine hf_run_situation(s, res)
             type(situation) :: s
+            type(situation_result) :: res
             real(8) :: energy
 
             real(8), allocatable, dimension(:,:) :: mat_s, mat_sd, mat_u, mat_p, mat_ch, mat_f
@@ -58,15 +119,18 @@ module hf
             allocate(mat_s(s%num_basis, s%num_basis))
             allocate(mat_sd(s%num_basis, s%num_basis))
             allocate(mat_u(s%num_basis, s%num_basis))
-            allocate(mat_p(s%num_basis, s%num_basis))
             allocate(mat_ch(s%num_basis, s%num_basis))
             allocate(mat_f(s%num_basis, s%num_basis))
-            allocate(mat_tmp(s%num_basis, s%num_basis))
             allocate(mat_x(s%num_basis, s%num_basis))
             allocate(mat_fd(s%num_basis, s%num_basis))
-            allocate(mat_e(s%num_basis, s%num_basis))
-            allocate(mat_cd(s%num_basis, s%num_basis))
-            allocate(mat_c(s%num_basis, s%num_basis))
+
+            allocate(mat_e(s%num_electrons, s%num_electrons))
+
+            allocate(mat_p(s%num_basis, s%num_electrons))
+            allocate(mat_cd(s%num_basis, s%num_electrons))
+            allocate(mat_c(s%num_basis, s%num_electrons))
+
+            allocate(mat_tmp(s%num_basis, s%num_basis))
 
             call hf_overlap_matrix(s, mat_s)
             call matrix_sym_diagonalize(mat_s, s%num_basis, mat_sd, mat_u)
@@ -118,6 +182,8 @@ module hf
                 write (*,*) mat_fd(2,1:2)
 
                 ! F'C' = C'e
+
+                ! NOTE C' must be num_basis x num_basis matrix to solve roothaan equation
                 call matrix_sym_diagonalize(mat_fd, s%num_basis, mat_e, mat_cd)
 
                 call hf_assert_hfr_answer(s%num_basis, mat_fd, mat_cd, mat_e)
@@ -146,8 +212,19 @@ module hf
                 last_energy = energy
             end do
 
-            write (*,*) "electron energy", energy
-            energy = energy + hf_potential_energy(s)
+            res%nucleus_potential_energy = hf_potential_energy(s)
+            res%electron_energy = energy
+            res%molecular_energy = res%electron_energy + res%nucleus_potential_energy
+
+            res%num_orbitals = s%num_electrons ! FIXME
+
+            allocate(res%orbital_coefficients(s%num_basis, res%num_orbitals))
+            res%orbital_coefficients = mat_c
+
+            allocate(res%orbital_energies(res%num_orbitals))
+            do i=1,res%num_orbitals
+                res%orbital_energies(i) = mat_e(i,i)
+            end do
 
             deallocate(mat_s)
             deallocate(mat_sd)
