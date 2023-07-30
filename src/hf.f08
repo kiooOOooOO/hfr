@@ -45,6 +45,7 @@ module hf
             write (*,'(A)') "[Metadata]"
             write (*,'(A)') "Title=SituationResult"
             write (*,'("NumElectrons=",I0)') s%num_electrons
+            write (*,'("NumBasis=",I0)') s%num_basis
             write (*,'("NumOrbitals=",I0)') sr%num_orbitals
             write (*,'("NumNucleus=",I0)') s%num_nucleuses
             write (*,'(A)') ""
@@ -74,6 +75,7 @@ module hf
 
             write (*,'(A)') "[Orbitals]"
             do i=1,sr%num_orbitals
+                write (*,'("E ",E15.4)') sr%orbital_energies(i)
                 do j=1,s%num_basis
                     write (*,'(E15.4)') sr%orbital_coefficients(j, i)
                 end do
@@ -123,12 +125,10 @@ module hf
             allocate(mat_f(s%num_basis, s%num_basis))
             allocate(mat_x(s%num_basis, s%num_basis))
             allocate(mat_fd(s%num_basis, s%num_basis))
-
-            allocate(mat_e(s%num_electrons, s%num_electrons))
-
-            allocate(mat_p(s%num_basis, s%num_electrons))
-            allocate(mat_cd(s%num_basis, s%num_electrons))
-            allocate(mat_c(s%num_basis, s%num_electrons))
+            allocate(mat_e(s%num_basis, s%num_basis))
+            allocate(mat_p(s%num_basis, s%num_basis))
+            allocate(mat_cd(s%num_basis, s%num_basis))
+            allocate(mat_c(s%num_basis, s%num_basis))
 
             allocate(mat_tmp(s%num_basis, s%num_basis))
 
@@ -216,7 +216,7 @@ module hf
             res%electron_energy = energy
             res%molecular_energy = res%electron_energy + res%nucleus_potential_energy
 
-            res%num_orbitals = s%num_electrons ! FIXME
+            res%num_orbitals = s%num_basis
 
             allocate(res%orbital_coefficients(s%num_basis, res%num_orbitals))
             res%orbital_coefficients = mat_c

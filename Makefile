@@ -1,7 +1,7 @@
 APP=hfr
 
 FC=nvfortran
-FC_FLAGS=-stdpar=multicore -module ${MODDIR} -lblas -cpp ${FC_OPT_FLAGS}
+FC_FLAGS=-stdpar=multicore -Minfo -module ${MODDIR} -lblas -cpp ${FC_OPT_FLAGS}
 
 MODDIR=mod
 SRCDIR=src

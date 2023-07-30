@@ -25,10 +25,10 @@ program hfr_main
     s%nucleuses(2)%cx = 0d0
     s%nucleuses(2)%cy = 0d0
     s%nucleuses(2)%cz = 1.3228d0
-    s%nucleuses(2)%charge = 1d0
+    s%nucleuses(2)%charge = 3d0
 
-    s%num_basis = 2
-    s%num_electrons = 2
+    s%num_basis = 3
+    s%num_electrons = 4
     allocate(s%basis_functions(s%num_basis))
 
     ! H-1s
@@ -44,11 +44,12 @@ program hfr_main
             0.4446345422d0 &
         /) )
 
+    ! Li-1s
     s%basis_functions(2) = stong_new(3, &
         (/ &
-            pgto_new(3.425250914d0,  0d0,0d0,1.3228d0, 0,0,0), &
-            pgto_new(0.6239137298d0, 0d0,0d0,1.3228d0, 0,0,0), &
-            pgto_new(0.168855404d0,  0d0,0d0,1.3228d0, 0,0,0) &
+            pgto_new(0.1611957475d2, 0d0,0d0,0d0, 0,0,0), &
+            pgto_new(0.2936200663d1, 0d0,0d0,0d0, 0,0,0), &
+            pgto_new(0.7946504870d0, 0d0,0d0,0d0, 0,0,0) &
         /), &
         (/ &
             0.1543289673d0, &
@@ -56,31 +57,57 @@ program hfr_main
             0.4446345422d0 &
         /) )
 
-!    ! Li-1s
-!    s%basis_functions(2) = stong_new(3, &
-!        (/ &
-!            pgto_new(0.1611957475d2, 0d0,0d0,0d0, 0,0,0), &
-!            pgto_new(0.2936200663d1, 0d0,0d0,0d0, 0,0,0), &
-!            pgto_new(0.7946504870d0, 0d0,0d0,0d0, 0,0,0) &
-!        /), &
-!        (/ &
-!            0.1543289673d0, &
-!            0.5353281423d0, &
-!            0.4446345422d0 &
-!        /) )
-!
-!    ! Li-2s
-!    s%basis_functions(3) = stong_new(3, &
-!        (/ &
-!            pgto_new(0.1611957475d2, 0d0,0d0,0d0, 0,0,0), &
-!            pgto_new(0.2936200663d1, 0d0,0d0,0d0, 0,0,0), &
-!            pgto_new(0.7946504870d0, 0d0,0d0,0d0, 0,0,0) &
-!        /), &
-!        (/ &
-!            -0.9996722919d-1, &
-!            0.3995128261d0, &
-!            0.7001154689d0 &
-!        /) )
+    ! Li-2s
+    s%basis_functions(3) = stong_new(3, &
+        (/ &
+            pgto_new(0.1611957475d2, 0d0,0d0,0d0, 0,0,0), &
+            pgto_new(0.2936200663d1, 0d0,0d0,0d0, 0,0,0), &
+            pgto_new(0.7946504870d0, 0d0,0d0,0d0, 0,0,0) &
+        /), &
+        (/ &
+            -0.9996722919d-1, &
+            0.3995128261d0, &
+            0.7001154689d0 &
+        /) )
+
+    if ( s%num_basis .gt. 3 ) then
+    ! Li-2px
+    s%basis_functions(4) = stong_new(3, &
+        (/ &
+            pgto_new(0.1611957475d2, 0d0,0d0,0d0, 1,0,0), &
+            pgto_new(0.2936200663d1, 0d0,0d0,0d0, 1,0,0), &
+            pgto_new(0.7946504870d0, 0d0,0d0,0d0, 1,0,0) &
+        /), &
+        (/ &
+            0.1559162750d0, &
+            0.6076837186d0, &
+            0.3919573931d0 &
+        /) )
+    ! Li-2py
+    s%basis_functions(5) = stong_new(3, &
+        (/ &
+            pgto_new(0.1611957475d2, 0d0,0d0,0d0, 0,1,0), &
+            pgto_new(0.2936200663d1, 0d0,0d0,0d0, 0,1,0), &
+            pgto_new(0.7946504870d0, 0d0,0d0,0d0, 0,1,0) &
+        /), &
+        (/ &
+            0.1559162750d0, &
+            0.6076837186d0, &
+            0.3919573931d0 &
+        /) )
+    ! Li-2pz
+    s%basis_functions(6) = stong_new(3, &
+        (/ &
+            pgto_new(0.1611957475d2, 0d0,0d0,0d0, 0,0,1), &
+            pgto_new(0.2936200663d1, 0d0,0d0,0d0, 0,0,1), &
+            pgto_new(0.7946504870d0, 0d0,0d0,0d0, 0,0,1) &
+        /), &
+        (/ &
+            0.1559162750d0, &
+            0.6076837186d0, &
+            0.3919573931d0 &
+        /) )
+end if
 
     allocate(s%eri_table(s%num_basis**4))
     s%eri_table = 0d0
@@ -89,27 +116,27 @@ program hfr_main
 
     call hf_dump_situation_result(s, sr)
 
-    write (*,*) "molecular energy", sr%molecular_energy
-    write (*,*) "electron energy", sr%electron_energy
-    write (*,*) "potential energy", sr%nucleus_potential_energy
-
-    write (*,*) "basis"
-    do i=1,s%num_basis
-        write (*,*) "#", i
-        write (*,*) s%basis_functions(i)%n
-        do j=1,s%basis_functions(i)%n
-            write (*,*) s%basis_functions(i)%coefs(j), s%basis_functions(i)%coefs(j)
-        end do
-    end do
-
-    write (*,*) "orbitals"
-    do i=1,s%num_electrons
-        write (*,*) "#", i
-        write (*,*) "energy"
-        write (*,*) sr%orbital_energies(i)
-        write (*,*) "coefficients"
-        write (*,*) sr%orbital_coefficients(1:s%num_basis,i)
-    end do
+!    write (*,*) "molecular energy", sr%molecular_energy
+!    write (*,*) "electron energy", sr%electron_energy
+!    write (*,*) "potential energy", sr%nucleus_potential_energy
+!
+!    write (*,*) "basis"
+!    do i=1,s%num_basis
+!        write (*,*) "#", i
+!        write (*,*) s%basis_functions(i)%n
+!        do j=1,s%basis_functions(i)%n
+!            write (*,*) s%basis_functions(i)%coefs(j), s%basis_functions(i)%coefs(j)
+!        end do
+!    end do
+!
+!    write (*,*) "orbitals"
+!    do i=1,s%num_electrons
+!        write (*,*) "#", i
+!        write (*,*) "energy"
+!        write (*,*) sr%orbital_energies(i)
+!        write (*,*) "coefficients"
+!        write (*,*) sr%orbital_coefficients(1:s%num_basis,i)
+!    end do
 
 
 end program
