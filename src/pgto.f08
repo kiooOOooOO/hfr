@@ -545,6 +545,33 @@ module pgto
             real(8), parameter :: DV = 1e-5
             real(8) :: sumation = 0, v = 0
 
+            integer, parameter :: MAX_M = 16
+            integer, parameter :: MAX_T = 100000
+            real(8), dimension(MAX_T, MAX_M) :: buffer = 0d0
+            integer :: t_idx, m_idx
+
+            t_idx = int(t*MAX_T) + 1
+            m_idx = m+1
+
+            if ( (t_idx .gt. MAX_T) .or. (m .gt. MAX_M) ) then
+                fm = _pgto_fm_do_calc(t, m)
+            else
+                if ( buffer(t_idx, m_idx) .eq. 0d0 ) then
+                    buffer(t_idx, m_idx) = _pgto_fm_do_calc(t, m)
+                end if
+
+                fm = buffer(t_idx, m_idx)
+            end if
+        end function
+
+        pure function _pgto_fm_do_calc(t, m) result(fm)
+            real(8), intent(out) :: fm
+            real(8), intent(in) :: t
+            integer, intent(in) :: m
+
+            real(8), parameter :: DV = 1e-5
+            real(8) :: sumation = 0, v = 0
+
             v = 0d0
             sumation = 0d0
             do while ( v .le. 1 )
