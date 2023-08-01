@@ -1,5 +1,6 @@
 module sto_ng
     use pgto
+    use pgto2
     implicit none
 
     type sto_ng
@@ -89,7 +90,7 @@ module sto_ng
             do b1=1,sb%n
             do c1=1,sc%n
             do d1=1,sd%n
-                val = pgto_eri(sa%pgtos(a1), sb%pgtos(b1), sc%pgtos(c1), sd%pgtos(d1))
+                val = pgto2_eri(sa%pgtos(a1), sb%pgtos(b1), sc%pgtos(c1), sd%pgtos(d1))
                 r = r + sa%coefs(a1) * sb%coefs(b1) * sc%coefs(c1) * sd%coefs(d1) &
                     * val
             end do
