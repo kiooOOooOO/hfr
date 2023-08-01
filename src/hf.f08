@@ -48,6 +48,10 @@ module hf
             write (*,'("NumBasis=",I0)') s%num_basis
             write (*,'("NumOrbitals=",I0)') sr%num_orbitals
             write (*,'("NumNucleus=",I0)') s%num_nucleuses
+            write (*,'("MolecularEnergy=",E16.8)') sr%molecular_energy
+            write (*,'("NucleusPotentialEnergy=",E16.8)') sr%nucleus_potential_energy
+            write (*,'("ElectronEnergy=",E16.8)') sr%electron_energy
+
             write (*,'(A)') ""
 
             write (*,'(A)') "[Nucleus]"
