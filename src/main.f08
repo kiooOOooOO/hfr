@@ -3,140 +3,73 @@ program hfr_main
     use pgto
     implicit none
 
-    type(situation) :: s
-    type(situation_result) :: sr
-    type(pgto) :: g1, g2, g3
-    real(8) :: energy, val
-
-    integer :: i, j
-
     write (*,*) "Hello World!"
+    call main()
 
-    s%num_nucleuses = 2
-    allocate(s%nucleuses(2))
+    contains
 
-    ! Hydrogen
-    s%nucleuses(1)%cx = 0d0
-    s%nucleuses(1)%cy = 0d0
-    s%nucleuses(1)%cz = -1.3228d0
-    s%nucleuses(1)%charge = 1d0
+        subroutine main()
+            type(situation) :: s
+            type(situation_result) :: sr
 
-    ! Lithium
-    s%nucleuses(2)%cx = 0d0
-    s%nucleuses(2)%cy = 0d0
-    s%nucleuses(2)%cz = 1.3228d0
-    s%nucleuses(2)%charge = 3d0
+            call load_situation(s)
 
-    s%num_basis = 3
-    s%num_electrons = 4
-    allocate(s%basis_functions(s%num_basis))
+            allocate(s%eri_table(s%num_basis**4))
+            s%eri_table = 0d0
+            call hf_run_situation(s, sr)
 
-    ! H-1s
-    s%basis_functions(1) = stong_new(3, &
-        (/ &
-            pgto_new(3.425250914d0,  0d0,0d0,-1.3228d0, 0,0,0), &
-            pgto_new(0.6239137298d0, 0d0,0d0,-1.3228d0, 0,0,0), &
-            pgto_new(0.168855404d0,  0d0,0d0,-1.3228d0, 0,0,0) &
-        /), &
-        (/ &
-            0.1543289673d0, &
-            0.5353281423d0, &
-            0.4446345422d0 &
-        /) )
+            call hf_dump_situation_result(s, sr)
+        end subroutine
 
-    ! Li-1s
-    s%basis_functions(2) = stong_new(3, &
-        (/ &
-            pgto_new(0.1611957475d2, 0d0,0d0,0d0, 0,0,0), &
-            pgto_new(0.2936200663d1, 0d0,0d0,0d0, 0,0,0), &
-            pgto_new(0.7946504870d0, 0d0,0d0,0d0, 0,0,0) &
-        /), &
-        (/ &
-            0.1543289673d0, &
-            0.5353281423d0, &
-            0.4446345422d0 &
-        /) )
+        subroutine load_situation(situ)
+            type(situation), intent(inout) :: situ
+            integer :: i, j
+            integer :: n_nuc, n_basis, n_pgto, n_elec
+            integer :: nx, ny, nz
+            real(8) :: expo, coef, charge, x, y, z
+            real(8), allocatable, dimension(:) :: coefs
+            type(pgto), allocatable, dimension(:) :: pgtos
 
-    ! Li-2s
-    s%basis_functions(3) = stong_new(3, &
-        (/ &
-            pgto_new(0.1611957475d2, 0d0,0d0,0d0, 0,0,0), &
-            pgto_new(0.2936200663d1, 0d0,0d0,0d0, 0,0,0), &
-            pgto_new(0.7946504870d0, 0d0,0d0,0d0, 0,0,0) &
-        /), &
-        (/ &
-            -0.9996722919d-1, &
-            0.3995128261d0, &
-            0.7001154689d0 &
-        /) )
+            open(17, file='./inputs/h2.dat', status='old')
 
-    if ( s%num_basis .gt. 3 ) then
-    ! Li-2px
-    s%basis_functions(4) = stong_new(3, &
-        (/ &
-            pgto_new(0.1611957475d2, 0d0,0d0,0d0, 1,0,0), &
-            pgto_new(0.2936200663d1, 0d0,0d0,0d0, 1,0,0), &
-            pgto_new(0.7946504870d0, 0d0,0d0,0d0, 1,0,0) &
-        /), &
-        (/ &
-            0.1559162750d0, &
-            0.6076837186d0, &
-            0.3919573931d0 &
-        /) )
-    ! Li-2py
-    s%basis_functions(5) = stong_new(3, &
-        (/ &
-            pgto_new(0.1611957475d2, 0d0,0d0,0d0, 0,1,0), &
-            pgto_new(0.2936200663d1, 0d0,0d0,0d0, 0,1,0), &
-            pgto_new(0.7946504870d0, 0d0,0d0,0d0, 0,1,0) &
-        /), &
-        (/ &
-            0.1559162750d0, &
-            0.6076837186d0, &
-            0.3919573931d0 &
-        /) )
-    ! Li-2pz
-    s%basis_functions(6) = stong_new(3, &
-        (/ &
-            pgto_new(0.1611957475d2, 0d0,0d0,0d0, 0,0,1), &
-            pgto_new(0.2936200663d1, 0d0,0d0,0d0, 0,0,1), &
-            pgto_new(0.7946504870d0, 0d0,0d0,0d0, 0,0,1) &
-        /), &
-        (/ &
-            0.1559162750d0, &
-            0.6076837186d0, &
-            0.3919573931d0 &
-        /) )
-end if
+            read (17,*) n_nuc
+            situ%num_nucleuses = n_nuc
+            allocate(situ%nucleuses(n_nuc))
+            do i=1,n_nuc
+                read (17,*) x, y, z, charge
+                situ%nucleuses(i)%cx = x
+                situ%nucleuses(i)%cy = y
+                situ%nucleuses(i)%cz = z
+                situ%nucleuses(i)%charge = charge
+            end do
 
-    allocate(s%eri_table(s%num_basis**4))
-    s%eri_table = 0d0
+            read (17,*) n_basis
+            situ%num_basis = n_basis
+            allocate(situ%basis_functions(n_basis))
+            do i=1,n_basis
+                read (17,*) n_pgto
+                allocate(coefs(n_pgto))
+                allocate(pgtos(n_pgto))
 
-    call hf_run_situation(s, sr)
+                do j=1,n_pgto
+                    read (17,*) expo, nx, ny, nz, coef
 
-    call hf_dump_situation_result(s, sr)
+                    pgtos(j) = pgto_new(expo, &
+                        situ%nucleuses(i)%cx, situ%nucleuses(i)%cy, situ%nucleuses(i)%cz, &
+                        nx, ny, nz)
+                    coefs(j) = coef
+                end do
 
-!    write (*,*) "molecular energy", sr%molecular_energy
-!    write (*,*) "electron energy", sr%electron_energy
-!    write (*,*) "potential energy", sr%nucleus_potential_energy
-!
-!    write (*,*) "basis"
-!    do i=1,s%num_basis
-!        write (*,*) "#", i
-!        write (*,*) s%basis_functions(i)%n
-!        do j=1,s%basis_functions(i)%n
-!            write (*,*) s%basis_functions(i)%coefs(j), s%basis_functions(i)%coefs(j)
-!        end do
-!    end do
-!
-!    write (*,*) "orbitals"
-!    do i=1,s%num_electrons
-!        write (*,*) "#", i
-!        write (*,*) "energy"
-!        write (*,*) sr%orbital_energies(i)
-!        write (*,*) "coefficients"
-!        write (*,*) sr%orbital_coefficients(1:s%num_basis,i)
-!    end do
+                situ%basis_functions(i) = stong_new(n_pgto, pgtos, coefs)
 
+                deallocate(coefs)
+                deallocate(pgtos)
+            end do
+
+            read (17,*) n_elec
+            situ%num_electrons = n_elec
+
+            close(17)
+        end subroutine
 
 end program
