@@ -397,12 +397,12 @@ module hf
 
             val = 0d0
 
-            do i1=1,s%num_basis
-            do i2=i1+1,s%num_basis
+            do i1=1,s%num_nucleuses
+                do i2=i1+1,s%num_nucleuses
                 dist = sqrt((s%nucleuses(i1)%cx-s%nucleuses(i2)%cx)**2 + (s%nucleuses(i1)%cy-s%nucleuses(i2)%cy)**2 &
                     + (s%nucleuses(i1)%cz-s%nucleuses(i2)%cz)**2)
                 val = val + s%nucleuses(i1)%charge * s%nucleuses(i2)%charge / dist
-            end do
+                end do
             end do
 
             energy = val
