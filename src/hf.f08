@@ -431,10 +431,8 @@ module hf
             integer :: r, c, i, ni
             real(8) :: val
 
-            do i=0,s%num_basis**2 - 1
-                r = (i/s%num_basis) + 1
-                c = mod(i,s%num_basis) + 1
-
+            do r=1,s%num_basis
+            do c=1,s%num_basis
                 val = stong_kinetic_energy(s%basis_functions(r), s%basis_functions(c))
                 do ni=1,s%num_nucleuses
                     val = val - s%nucleuses(ni)%charge*stong_nuclear_attr( &
@@ -446,6 +444,7 @@ module hf
                 end do
 
                 mat(r,c) = val
+            end do
             end do
         end subroutine!}}}
 
