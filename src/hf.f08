@@ -485,27 +485,51 @@ module hf
 
         subroutine _hf_create_eri_table(s)
             type(situation), intent(inout) :: s
-            integer :: e1, e2, e3, e4, idx, n
+            integer :: e1, e2, e3, e4, idx, n, i
             real(8) :: val
+            logical, allocatable, dimension(:) :: calculated
 
             n = s%num_basis
-            do concurrent(e1=1:n, e2=1:n, e3=1:n, e4=1:n) local(idx, val)
-                idx = _hf_eri_index(s, e1, e2, e3, e4)
-                val = stong_eri(BF(e1), BF(e2), BF(e3), BF(e4))
-
-                s%eri_table(idx) = val
-            end do
+            allocate(calculated(n**6))
+            calculated = .false.
 
             do e1=1,n
             do e2=1,n
             do e3=1,n
             do e4=1,n
                 idx = _hf_eri_index(s, e1, e2, e3, e4)
-                write (*,'(I6,I6,I6,I6,I6,E16.8)') idx, e1, e2, e3, e4, s%eri_table(idx)
+                if ( calculated(idx) ) then
+                    cycle
+                end if
+
+                val = stong_eri(BF(e1), BF(e2), BF(e3), BF(e4))
+
+                s%eri_table(idx) = val
+
+                idx = _hf_eri_index(s, e2, e1, e3, e4)
+                s%eri_table(idx) = val
+                calculated(idx) = .true.
+                idx = _hf_eri_index(s, e2, e1, e4, e3)
+                s%eri_table(idx) = val
+                calculated(idx) = .true.
+                idx = _hf_eri_index(s, e3, e4, e1, e2)
+                s%eri_table(idx) = val
+                calculated(idx) = .true.
+                idx = _hf_eri_index(s, e3, e4, e2, e1)
+                s%eri_table(idx) = val
+                calculated(idx) = .true.
+                idx = _hf_eri_index(s, e4, e3, e1, e2)
+                s%eri_table(idx) = val
+                calculated(idx) = .true.
+                idx = _hf_eri_index(s, e4, e3, e2, e1)
+                s%eri_table(idx) = val
+                calculated(idx) = .true.
             end do
             end do
             end do
             end do
+
+            deallocate(calculated)
         end subroutine
 
         pure function _hf_eri_cache(s, e1, e2, e3, e4)
