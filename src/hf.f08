@@ -463,7 +463,7 @@ module hf
                 do j=1,s%num_electrons/2
                     do m=1,s%num_basis
                     do n=1,s%num_basis
-                        val = val + (2d0*_hf_eri_cache(s,k,l,m,n)-_hf_eri_cache(s,k,n,m,l))*matC(m,j)*matC(n,j)
+                        val = val + (2d0*_hf_eri_cache(s,k,m,l,n)-_hf_eri_cache(s,k,m,n,l))*matC(m,j)*matC(n,j)
                     end do
                     end do
                 end do
