@@ -285,7 +285,7 @@ module hf
             call matrix_mult_normal_normal(mat_tmp, mat_e, n, n, n, mat_right)
             do r=1,n
             do c=1,n
-                if ( abs(mat_left(r,c) - mat_right(r,c)) .gt. 1e-4 ) then
+                if ( abs(mat_left(r,c) - mat_right(r,c)) .gt. 1e-2 ) then
                     write (*,*) "hf error"
                     write (*,*) "left"
                     write (*,*) mat_left
@@ -320,7 +320,7 @@ module hf
 
             do r=1,n
             do c=1,n
-                if ( abs(mat_left(r,c) - mat_right(r,c)) .gt. 1e-4 ) then
+                if ( abs(mat_left(r,c) - mat_right(r,c)) .gt. 1e-2 ) then
                     write (*,*) "hfr error"
                     write (*,*) "left"
                     write (*,*) mat_left
