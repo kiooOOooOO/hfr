@@ -138,23 +138,14 @@ module hf
 
             call hf_overlap_matrix(s, mat_s)
             call matrix_sym_diagonalize(mat_s, s%num_basis, mat_sd, mat_u)
-            write (*,*) "mat_sd"
-            write (*,*) mat_sd(1,1:2)
-            write (*,*) mat_sd(2,1:2)
             do i=1,s%num_basis
                 mat_sd(i,i) = mat_sd(i,i)**-0.5d0
             end do
 
             call matrix_mult_normal_normal(mat_u, mat_sd, s%num_basis, s%num_basis, s%num_basis, mat_tmp)
             call matrix_mult_normal_transpose(mat_tmp, mat_u, s%num_basis, s%num_basis, s%num_basis, mat_x)
-            write (*,*) "mat_x"
-            write (*,*) mat_x(1,1:2)
-            write (*,*) mat_x(2,1:2)
 
             call hf_core_hamiltonian_matrix(s, mat_ch)
-            write (*,*) "core hamiltonian"
-            write (*,*) mat_ch(1,1:2)
-            write (*,*) mat_ch(2,1:2)
 
             mat_c = 0d0
             mat_p = 0d0
@@ -166,14 +157,7 @@ module hf
                 iterations = iterations + 1
                 write (*,*) "# of iterations", iterations
 
-                write (*,*) "coefficient matrix"
-                write (*,*) mat_c(1,1:2)
-                write (*,*) mat_c(2,1:2)
-
                 call hf_fock_matrix(s, mat_ch, mat_c, mat_f)
-                write (*,*) "fock matrix created"
-                write (*,*) mat_f(1,1:2)
-                write (*,*) mat_f(2,1:2)
 
                 ! F' <- Xt*F*X
                 call matrix_mult_transpose_normal(mat_x, mat_f, s%num_basis, s%num_basis, s%num_basis, mat_tmp)
@@ -181,29 +165,15 @@ module hf
 
                 call hf_assert_matrix_symetric(s%num_basis, mat_fd)
 
-                write (*,*) "transposed fock matrix"
-                write (*,*) mat_fd(1,1:2)
-                write (*,*) mat_fd(2,1:2)
-
                 ! F'C' = C'e
 
                 ! NOTE C' must be num_basis x num_basis matrix to solve roothaan equation
                 call matrix_sym_diagonalize(mat_fd, s%num_basis, mat_e, mat_cd)
 
                 call hf_assert_hfr_answer(s%num_basis, mat_fd, mat_cd, mat_e)
-                write (*,*) "transposed coefficient matrix"
-                write (*,*) mat_cd(1,1:2)
-                write (*,*) mat_cd(2,1:2)
 
                 ! C <- XC'
                 call matrix_mult_normal_normal(mat_x, mat_cd, s%num_basis, s%num_basis, s%num_basis, mat_c)
-
-                write (*,*) "coefficient matrix"
-                write (*,*) mat_c(1,1:2)
-                write (*,*) mat_c(2,1:2)
-                write (*,*) "energy matrix"
-                write (*,*) mat_e(1,1:2)
-                write (*,*) mat_e(2,1:2)
 
                 call hf_density_matrix(s%num_basis, mat_c, mat_p)
 
