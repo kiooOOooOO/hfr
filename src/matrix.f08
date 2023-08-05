@@ -87,21 +87,44 @@ module matrix
 
             real(8), allocatable, dimension(:) :: evals
             real(8), allocatable, dimension(:,:) :: evecs
-            integer :: i, j
+            integer, allocatable, dimension(:) :: order
+            integer :: i, j, smallest
+            real(8), allocatable, dimension(:) :: tmparr
+            real(8) :: tmp
 
+            allocate(tmparr(nlen))
             allocate(evals(nlen))
             allocate(evecs(nlen,nlen))
 
             call matrix_sym_eigenvalue(matA, nlen, evals, evecs)
 
+            do i=1,nlen-1
+                smallest = i
+                do j=i+1,nlen
+                    if ( evals(j) .lt. evals(smallest) ) then
+                        smallest = j
+                    end if
+                end do
+                tmp = evals(i)
+                evals(i) = evals(smallest)
+                evals(smallest) = tmp
+
+                tmparr = evecs(i,1:nlen)
+                evecs(i,1:nlen) = evecs(smallest,1:nlen)
+                evecs(smallest,1:nlen) = tmparr
+            end do
+
             matR = 0
             do i=1,nlen
+               matR(i,i) = evals(i)
             do j=1,nlen
-                matR(i,i) = evals(i)
-                matU(i,j) = evecs(j,i)
+               matU(i,j) = evecs(j,i)
+!               matR(nlen-i+1,nlen-i+1) = evals(i)
+!               matU(i,nlen-j+1) = evecs(j,i)
             end do
             end do
 
+            deallocate(tmparr)
             deallocate(evals)
             deallocate(evecs)
         end subroutine
@@ -176,6 +199,9 @@ module matrix
 
                 end do
             end do
+
+!            write (*,*) ">", matT
+!            write (*,*) ">>", matE
 
             do i=1,nlen
                 evals(i) = matT(i,i)
