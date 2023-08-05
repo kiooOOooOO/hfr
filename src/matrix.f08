@@ -110,7 +110,7 @@ module matrix
                 evals(smallest) = tmp
 
                 tmparr = evecs(i,1:nlen)
-                evecs(i,i:nlen) = evecs(smallest,1:nlen)
+                evecs(i,1:nlen) = evecs(smallest,1:nlen)
                 evecs(smallest,1:nlen) = tmparr
             end do
 
