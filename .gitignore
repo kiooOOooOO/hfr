@@ -3,3 +3,6 @@ out/*.o
 out/hfr
 mod/*.mod
 *.swp
+main.o
+eritest.o
+result.dat
