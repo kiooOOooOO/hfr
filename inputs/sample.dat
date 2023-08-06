@@ -1,0 +1,10 @@
+# of nucleuses
+X Y Z Charge
+...
+# of basis functions
+Origin nucleus index
+# of primitive GTOs
+Exponent Nx Ny Nz Coefficient
+...
+...
+# of electrons
