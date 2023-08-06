@@ -10,28 +10,6 @@ module hf
 
     contains
 
-
-        pure function _hf_eri_index(s, e1, e2, e3, e4)
-            integer, intent(out) :: _hf_eri_index
-            type(situation), intent(in) :: s
-            integer, intent(in) :: e1, e2, e3, e4
-
-            integer :: ret, base, i
-
-            base = 1
-
-            ret = (e1-1)*base
-            base = base*s%num_basis
-            ret = (e2-1)*base + ret
-            base = base*s%num_basis
-            ret = (e3-1)*base + ret
-            base = base*s%num_basis
-            ret = (e4-1)*base + ret
-            base = base*s%num_basis
-
-            _hf_eri_index = ret+1
-        end function
-
         subroutine hf_run_situation(s, res, dump)
             type(situation) :: s
             type(situation_result) :: res
@@ -41,10 +19,6 @@ module hf
             real(8), allocatable, dimension(:,:) :: mat_s, mat_sd, mat_u, mat_p, mat_ch, mat_f, mat_pnext
             real(8), allocatable, dimension(:,:) :: mat_tmp, mat_x, mat_fd, mat_e, mat_cd, mat_c
             integer :: i, iterations
-
-!            write (*,*) "creating eri table...."
-!            call _hf_create_eri_table(s)
-!            write (*,*) "done"
 
             allocate(mat_s(s%num_basis, s%num_basis))
             allocate(mat_sd(s%num_basis, s%num_basis))
@@ -417,7 +391,7 @@ module hf
                 do a=1,s%num_electrons/2
                     do k=1,s%num_basis
                     do l=1,s%num_basis
-                        val = val + matC(k,a)*matC(l,a)*(2d0*_hf_eri_cache(s,m,n,k,l) - _hf_eri_cache(s,m,l,n,k))
+                        val = val + matC(k,a)*matC(l,a)*(2d0*hf_eri_cache(s,m,n,k,l) - hf_eri_cache(s,m,l,n,k))
                     end do
                     end do
                 end do
@@ -427,86 +401,4 @@ module hf
             end do
         end subroutine!}}}
 
-#define BF(x) s%basis_functions(x)
-        subroutine hf_test_eri(s)
-            type(situation), intent(inout) :: s
-
-            real(8) :: val
-
-            val = stong_eri(BF(3), BF(2), BF(6), BF(1))
-            write (*,*) 3261, val
-        end subroutine
-
-        subroutine _hf_create_eri_table(s)!{{{
-            type(situation), intent(inout) :: s
-            integer :: e1, e2, e3, e4, idx, n, i
-            real(8) :: val
-            logical, allocatable, dimension(:) :: calculated
-
-            n = s%num_basis
-            allocate(calculated(n**6))
-            calculated = .false.
-
-            do e1=1,n
-            do e2=1,n
-            do e3=1,n
-            do e4=1,n
-                idx = _hf_eri_index(s, e1, e2, e3, e4)
-                if ( calculated(idx) ) then
-                    cycle
-                end if
-
-                val = stong_eri(BF(e1), BF(e2), BF(e3), BF(e4))
-
-                s%eri_table(idx) = val
-
-                idx = _hf_eri_index(s, e2, e1, e3, e4)
-                s%eri_table(idx) = val
-                calculated(idx) = .true.
-                idx = _hf_eri_index(s, e2, e1, e4, e3)
-                s%eri_table(idx) = val
-                calculated(idx) = .true.
-                idx = _hf_eri_index(s, e3, e4, e1, e2)
-                s%eri_table(idx) = val
-                calculated(idx) = .true.
-                idx = _hf_eri_index(s, e3, e4, e2, e1)
-                s%eri_table(idx) = val
-                calculated(idx) = .true.
-                idx = _hf_eri_index(s, e4, e3, e1, e2)
-                s%eri_table(idx) = val
-                calculated(idx) = .true.
-                idx = _hf_eri_index(s, e4, e3, e2, e1)
-                s%eri_table(idx) = val
-                calculated(idx) = .true.
-            end do
-            end do
-            end do
-            end do
-
-            do e1=1,n
-            do e2=1,n
-            do e3=1,n
-            do e4=1,n
-                idx = _hf_eri_index(s, e1, e2, e3, e4)
-                write (*,'(5(I5),E20.8)') idx, e1, e2, e3, e4, s%eri_table(idx)
-            end do
-            end do
-            end do
-            end do
-
-            deallocate(calculated)
-        end subroutine!}}}
-
-        pure function _hf_eri_cache(s, e1, e2, e3, e4)
-            real(8), intent(out) :: _hf_eri_cache
-            type(situation), intent(in) :: s
-            integer, intent(in) :: e1, e2, e3, e4
-
-            integer :: idx
-
-            idx = _hf_eri_index(s, e1, e2, e3, e4)
-
-            _hf_eri_cache = s%eri_table(idx)
-        end function
-#undef BF
 end module
