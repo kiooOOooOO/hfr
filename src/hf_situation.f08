@@ -30,7 +30,7 @@ module hf_situation
 
         integer :: num_orbitals
 
-        ! (i,j) -> j 番目の軌道の i 番目の既定関数に対する係数
+        ! (i,j) -> coefficient to j-th basis function in i-th molecular orbital
         real(8), allocatable, dimension(:,:) :: orbital_coefficients
 
         real(8), allocatable, dimension(:) :: orbital_energies
@@ -255,4 +255,16 @@ module hf_situation
             e3 = mod(tmp, s%num_basis) + 1
             e4 = 1 + (tmp / s%num_basis)
         end subroutine
+
+        pure function hf_eri_cache(s, e1, e2, e3, e4)
+            real(8), intent(out) :: hf_eri_cache
+            type(situation), intent(in) :: s
+            integer, intent(in) :: e1, e2, e3, e4
+
+            integer :: idx
+
+            idx = hf_eri_index(s, e1, e2, e3, e4)
+
+            hf_eri_cache = s%eri_table(idx)
+        end function
 end module
