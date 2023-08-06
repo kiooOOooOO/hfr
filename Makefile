@@ -17,7 +17,7 @@ MPI_WORKER_NUM?=2
 all: hf
 	${FC} ${FC_FLAGS} ${SRCDIR}/main.f08 ${OUTDIR}/*.o -o ${OUTDIR}/${APP}
 
-eritest: pgto pgto2
+eritest: pgto
 	${FC} ${FC_FLAGS} ${SRCDIR}/eritest.f08 ${OUTDIR}/*.o -o ${OUTDIR}/eritest
 
 run:
@@ -35,10 +35,7 @@ samplemod: ${SRCDIR}/samplemod.f08
 pgto: ${SRCDIR}/pgto.f08
 	${FC} ${FC_FLAGS} -c ${SRCDIR}/pgto.f08 -o ${OUTDIR}/pgto.o
 
-pgto2: pgto ${SRCDIR}/pgto2.f08
-	${FC} ${FC_FLAGS} -c ${SRCDIR}/pgto2.f08 -o ${OUTDIR}/pgto2.o
-
-sto_ng: pgto pgto2 ${SRCDIR}/sto_ng.f08
+sto_ng: pgto ${SRCDIR}/sto_ng.f08
 	${FC} ${FC_FLAGS} -c ${SRCDIR}/sto_ng.f08 -o ${OUTDIR}/sto_ng.o
 
 hf: hf_situation sto_ng matrix ${SRCDIR}/hf.f08
