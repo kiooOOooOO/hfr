@@ -1,7 +1,6 @@
 program eritest_main
     use, intrinsic :: iso_fortran_env
     use pgto
-    use pgto2
     implicit none
 
     integer, parameter :: N = 10
