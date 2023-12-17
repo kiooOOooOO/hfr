@@ -104,7 +104,7 @@ program hfr_main
         subroutine main(in_file_name, out_file_name, dump, wnum, rank)
             character(:), allocatable :: in_file_name, out_file_name
             logical :: dump
-            integer :: wnum, rank
+            integer :: wnum, rank, i
 
             type(situation) :: s
             type(situation_result) :: sr
@@ -112,9 +112,12 @@ program hfr_main
             call load_situation(s, in_file_name)
 
             allocate(s%eri_table(s%num_basis**4))
+
+            do i=1,LOOP_COUNT
             s%eri_table = 0d0
 
             call hf_do_electron_repulsion_integrals_mpi(s, wnum, rank)
+            end do
 
             if ( rank .eq. 0 ) then
                 call hf_run_situation(s, sr, dump)
