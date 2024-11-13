@@ -128,6 +128,7 @@ module hf_situation
             end do
             end do
 
+            ! randomize order to evenly spread the workload to peers
             do i=1,calc_count
                 call random_number(rtmp)
                 idx = 1 + (rtmp*calc_count)
@@ -154,14 +155,24 @@ module hf_situation
             character(MPI_MAX_PROCESSOR_NAME) :: procName
             integer :: nameLen
 
+            ! calculation holds the list of eris to calculate
+            ! calc_count is the length of the list
             allocate(calculation(s%num_basis**4))
             call hf_pick_calculation(s, calculation, calc_count)
+
+            ! decide how many eris to calculate per peer
             if ( mod(calc_count, wnum) .eq. 0 ) then
                 calc_each_count = calc_count/wnum
             else
+                ! if the number of eris to calculate isn't disivible by the number of the peer,
+                ! then one of the peer will handle less than the others,
+                ! and the others will handle calc_each_count
                 calc_each_count = 1 + (calc_count/wnum)
             end if
-            allocate(eri_all(calc_count))
+            ! NOTE. although the total number of eri to calculate is the calc_count,
+            ! MPI will try to gather from wnum peers calc_each_count each,
+            ! so the  length of eri_all must be wnum*calc_each_count, not calc_count
+            allocate(eri_all(wnum*calc_each_count))
             allocate(calc_each(calc_each_count))
             allocate(each_eri(calc_each_count))
 
@@ -172,6 +183,7 @@ module hf_situation
                 write (*,*) "ERIs per Peer", calc_each_count
             end if
 
+            ! scatter calculation to calc_each
             calc_each = 0
             call mpi_scatter(calculation, calc_each_count, MPI_INTEGER, calc_each, &
                 calc_each_count, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
@@ -201,18 +213,18 @@ module hf_situation
 
             if ( rank .eq. 0 ) then
                 write (*,*) "================================================"
-            end if
 
-            do i=1,calc_count
-                call hf_eri_index_to_number(s, calculation(i), e1, e2, e3, e4)
-                s%eri_table(hf_eri_index(s, e1, e2, e3, e4)) = eri_all(i)
-                s%eri_table(hf_eri_index(s, e2, e1, e3, e4)) = eri_all(i)
-                s%eri_table(hf_eri_index(s, e2, e1, e4, e3)) = eri_all(i)
-                s%eri_table(hf_eri_index(s, e3, e4, e1, e2)) = eri_all(i)
-                s%eri_table(hf_eri_index(s, e3, e4, e2, e1)) = eri_all(i)
-                s%eri_table(hf_eri_index(s, e4, e3, e1, e2)) = eri_all(i)
-                s%eri_table(hf_eri_index(s, e4, e3, e2, e1)) = eri_all(i)
-            end do
+                do i=1,calc_count
+                    call hf_eri_index_to_number(s, calculation(i), e1, e2, e3, e4)
+                    s%eri_table(hf_eri_index(s, e1, e2, e3, e4)) = eri_all(i)
+                    s%eri_table(hf_eri_index(s, e2, e1, e3, e4)) = eri_all(i)
+                    s%eri_table(hf_eri_index(s, e2, e1, e4, e3)) = eri_all(i)
+                    s%eri_table(hf_eri_index(s, e3, e4, e1, e2)) = eri_all(i)
+                    s%eri_table(hf_eri_index(s, e3, e4, e2, e1)) = eri_all(i)
+                    s%eri_table(hf_eri_index(s, e4, e3, e1, e2)) = eri_all(i)
+                    s%eri_table(hf_eri_index(s, e4, e3, e2, e1)) = eri_all(i)
+                end do
+            end if
 
             deallocate(calculation)
             deallocate(calc_each)
