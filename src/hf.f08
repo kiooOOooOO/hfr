@@ -45,9 +45,6 @@ module hf
             call matrix_mult_normal_transpose(mat_tmp, mat_u, s%num_basis, s%num_basis, s%num_basis, mat_x)
 
             call hf_core_hamiltonian_matrix(s, mat_ch)
-            write (*,*) "CORE HAMILTONIAL MATRIX"
-                write (*,*) mat_ch(1,1:2)
-                write (*,*) mat_ch(2,1:2)
 
             mat_c = 0d0
             mat_p = 0d0
@@ -84,6 +81,7 @@ module hf
                     call hf_dump_iteration(s, iterations, mat_f, mat_c, mat_e)
                 end if
 
+                energy = hf_electron_energy(s, mat_ch, mat_f, mat_p)
                 write (*,'(I5,"-th iteration, energy=", E20.8)') iterations, energy
 
                 if ( hf_converged(s, mat_p, mat_pnext) ) then
@@ -91,7 +89,6 @@ module hf
                 end if
 
                 mat_p = mat_pnext
-                energy = hf_electron_energy(s, mat_ch, mat_f, mat_p)
             end do
 
             res%nucleus_potential_energy = hf_potential_energy(s)
@@ -308,7 +305,7 @@ module hf
             val = 0d0
             do r=1,s%num_basis
             do c=1,s%num_basis
-                val = val + mat_p(r,c)*(mat_ch(r,c) + mat_f(r,c))
+                val = val + mat_p(c,r)*(mat_ch(r,c) + mat_f(r,c))
             end do
             end do
 
