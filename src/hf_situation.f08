@@ -16,6 +16,7 @@ module hf_situation
         integer :: num_electrons
 
         type(sto_ng), allocatable, dimension(:) :: basis_functions
+        integer, allocatable, dimension(:) :: basis_nuc_index
         integer :: num_basis
 
         real(8), allocatable, dimension(:) :: eri_table

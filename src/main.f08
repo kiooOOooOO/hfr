@@ -1,6 +1,7 @@
 program hfr_main
     use hf
     use pgto
+    use mulliken
     implicit none
 
     integer :: ierr
@@ -108,6 +109,7 @@ program hfr_main
 
             type(situation) :: s
             type(situation_result) :: sr
+            type(mulliken_report) :: mr
 
             call load_situation(s, in_file_name)
 
@@ -118,6 +120,8 @@ program hfr_main
 
             if ( rank .eq. 0 ) then
                 call hf_run_situation(s, sr, dump)
+
+                call mulliken_analysis(s, sr, mr)
 
                 call hf_dump_situation_result(s, sr, out_file_name)
             end if
@@ -149,11 +153,14 @@ program hfr_main
             read (17,*) n_basis
             situ%num_basis = n_basis
             allocate(situ%basis_functions(n_basis))
+            allocate(situ%basis_nuc_index(n_basis))
             do i=1,n_basis
                 read (17,*) nuc_idx
                 read (17,*) n_pgto
                 allocate(coefs(n_pgto))
                 allocate(pgtos(n_pgto))
+
+                situ%basis_nuc_index(i) = nuc_idx
 
                 do j=1,n_pgto
                     read (17,*) expo, nx, ny, nz, coef
